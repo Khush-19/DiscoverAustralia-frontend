@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "DiscoverAustralia",
+    "slug": "discover-australia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./public/favicon.svg",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#111418"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#111418"
+      },
+      "package": "com.discover.australia"
+    },
+    "ios": {
+      "bundleIdentifier": "com.discover.australia",
+      "supportsTablet": false
+    }
+  }
+}
