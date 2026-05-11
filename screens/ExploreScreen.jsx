@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -23,100 +24,103 @@ import {
   Navigation,
   Mic,
 } from 'lucide-react-native';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 import { fetchInsiderTip } from '../services/AuraAPI';
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 
 const FILTERS = [
-  { id: 'All',     emoji: '✨', label: 'All'     },
+  { id: 'All', emoji: '✨', label: 'All' },
   { id: 'Beaches', emoji: '🏖️', label: 'Beaches' },
-  { id: 'Cafes',   emoji: '☕', label: 'Cafes'   },
-  { id: 'Parks',   emoji: '🌳', label: 'Parks'   },
-  { id: 'Events',  emoji: '🎉', label: 'Events'  },
+  { id: 'Cafes', emoji: '☕', label: 'Cafes' },
+  { id: 'Parks', emoji: '🌳', label: 'Parks' },
+  { id: 'Events', emoji: '🎉', label: 'Events' },
 ];
 
 const MAP_DOTS = [
-  { top: '20%', left: '30%', primary: true  },
-  { top: '42%', left: '58%', primary: true  },
+  { top: '20%', left: '30%', primary: true },
+  { top: '42%', left: '58%', primary: true },
   { top: '25%', left: '74%', primary: false },
   { top: '58%', left: '40%', primary: false },
-  { top: '50%', left: '82%', primary: true  },
+  { top: '50%', left: '82%', primary: true },
 ];
 
 const TRENDING = [
   {
     id: '1',
-    title:      'Bondi Beach',
-    badge:      'FREE',
+    title: 'Bondi Beach',
+    badge: 'FREE',
     badgeColor: '#10B981',
-    rating:     4.9,
-    distance:   '4.2km',
-    image:      'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
+    rating: 4.9,
+    distance: '4.2km',
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
   },
   {
     id: '2',
-    title:      'Opera House',
-    badge:      'FREE',
+    title: 'Opera House',
+    badge: 'FREE',
     badgeColor: '#10B981',
-    rating:     4.8,
-    distance:   '3.1km',
-    image:      'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=500&q=80',
+    rating: 4.8,
+    distance: '3.1km',
+    image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=500&q=80',
   },
   {
     id: '3',
-    title:      'Manly Beach',
-    badge:      'TODAY',
+    title: 'Manly Beach',
+    badge: 'TODAY',
     badgeColor: '#F59E0B',
-    rating:     4.7,
-    distance:   '18km',
-    image:      'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=500&q=80',
+    rating: 4.7,
+    distance: '18km',
+    image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=500&q=80',
   },
 ];
 
 const NEAR_USYD = [
   {
     id: '1',
-    title:      'Grounds of Alexandria',
-    category:   'Café · Brunch',
-    rating:     4.7,
-    distance:   '0.21km',
-    badge:      'Free',
+    title: 'Grounds of Alexandria',
+    category: 'Café · Brunch',
+    rating: 4.7,
+    distance: '0.21km',
+    badge: 'Free',
     badgeColor: '#10B981',
-    image:      'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&q=80',
+    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&q=80',
   },
   {
     id: '2',
-    title:      'Royal Botanic Garden',
-    category:   'Park · Nature',
-    rating:     4.8,
-    distance:   '5.3km',
-    badge:      null,
+    title: 'Royal Botanic Garden',
+    category: 'Park · Nature',
+    rating: 4.8,
+    distance: '5.3km',
+    badge: null,
     badgeColor: null,
-    image:      'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&q=80',
+    image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&q=80',
   },
 ];
 
 // ─── Map preview card ─────────────────────────────────────────────────────────
 
 function MapPreviewCard() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors, isDark);
+
   return (
     <View style={s.mapCard}>
       <LinearGradient
-        colors={['#DDF0EC', '#CCE9E3', '#B8E2DA']}
+        colors={isDark ? ['#1A2B28', '#14221F', '#0E1715'] : ['#DDF0EC', '#CCE9E3', '#B8E2DA']}
         style={StyleSheet.absoluteFill}
       />
       <View style={[s.mapPark, { top: '12%', left: '56%', width: '28%', height: '38%' }]} />
-      <View style={[s.mapPark, { top: '60%', left: '4%',  width: '32%', height: '26%' }]} />
+      <View style={[s.mapPark, { top: '60%', left: '4%', width: '32%', height: '26%' }]} />
       <View style={s.mapWater} />
       <View style={[s.road, s.roadH, { top: '32%' }]} />
       <View style={[s.road, s.roadH, { top: '58%' }]} />
       <View style={[s.road, s.roadV, { left: '20%' }]} />
       <View style={[s.road, s.roadV, { left: '48%' }]} />
       <View style={[s.road, s.roadV, { left: '74%' }]} />
-      <View style={[s.block, { top: '6%',  left: '4%',  width: '14%', height: '22%' }]} />
-      <View style={[s.block, { top: '6%',  left: '22%', width: '22%', height: '22%' }]} />
+      <View style={[s.block, { top: '6%', left: '4%', width: '14%', height: '22%' }]} />
+      <View style={[s.block, { top: '6%', left: '22%', width: '22%', height: '22%' }]} />
       <View style={[s.block, { top: '40%', left: '22%', width: '22%', height: '14%' }]} />
       <View style={[s.block, { top: '40%', left: '50%', width: '20%', height: '14%' }]} />
       <View style={[s.block, { top: '40%', left: '76%', width: '18%', height: '22%' }]} />
@@ -133,7 +137,7 @@ function MapPreviewCard() {
         </View>
       </View>
       <LinearGradient
-        colors={['transparent', 'rgba(10,14,18,0.82)']}
+        colors={['transparent', isDark ? 'rgba(10,14,18,0.82)' : 'rgba(0,0,0,0.6)']}
         style={s.mapBarGrad}
       >
         <View style={s.mapBarLeft}>
@@ -151,6 +155,9 @@ function MapPreviewCard() {
 // ─── Trending card ────────────────────────────────────────────────────────────
 
 function TrendingCard({ item }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <TouchableOpacity activeOpacity={0.85} style={s.trendingShell}>
       <ImageBackground
@@ -184,6 +191,9 @@ function TrendingCard({ item }) {
 // ─── Nearby card ──────────────────────────────────────────────────────────────
 
 function NearbyCard({ item, isLast }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <TouchableOpacity
       activeOpacity={0.72}
@@ -196,7 +206,7 @@ function NearbyCard({ item, isLast }) {
           {item.badge && (
             <View style={[s.nearbyBadge, {
               backgroundColor: item.badgeColor + '20',
-              borderColor:     item.badgeColor + '50',
+              borderColor: item.badgeColor + '50',
             }]}>
               <Text style={[s.nearbyBadgeText, { color: item.badgeColor }]}>
                 {item.badge}
@@ -223,6 +233,9 @@ function NearbyCard({ item, isLast }) {
 // ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({ title, rightLabel, onRight }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <View style={s.sectionHeader}>
       <Text style={s.sectionTitle}>{title}</Text>
@@ -239,6 +252,9 @@ function SectionHeader({ title, rightLabel, onRight }) {
 // ─── Aura Insider card ────────────────────────────────────────────────────────
 
 function InsiderTipCard({ tip, isLoading, onDismiss }) {
+  const { colors } = useTheme();
+  const ic = getInsiderStyles(colors);
+
   if (isLoading) {
     return (
       <View style={ic.loadingCard}>
@@ -287,6 +303,8 @@ function InsiderTipCard({ tip, isLoading, onDismiss }) {
 function VoiceModal({ visible, onUse, onClose }) {
   const [phase, setPhase] = useState('listening');
   const pulse = useRef(new Animated.Value(1)).current;
+  const { colors, isDark } = useTheme();
+  const sv = getVoiceStyles(colors, isDark);
 
   useEffect(() => {
     if (!visible) return;
@@ -295,7 +313,7 @@ function VoiceModal({ visible, onUse, onClose }) {
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.55, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulse, { toValue: 1,    duration: 700, useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 700, useNativeDriver: true }),
       ])
     );
     loop.start();
@@ -351,12 +369,14 @@ function VoiceModal({ visible, onUse, onClose }) {
 
 export default function ExploreScreen() {
   const { vibe, auraScore } = useUser();
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
-  const [query,        setQuery]        = useState('');
+  const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [voiceVisible, setVoiceVisible] = useState(false);
-  const [isSearching,  setIsSearching]  = useState(false);
-  const [aiTip,        setAiTip]        = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [aiTip, setAiTip] = useState(null);
 
   // Core RAG search — called from both the keyboard submit and the voice modal.
   const triggerSearch = async (searchQuery) => {
@@ -364,7 +384,7 @@ export default function ExploreScreen() {
     setIsSearching(true);
     setAiTip(null);
     try {
-      const vibeLabel  = vibe?.title ?? 'balanced';
+      const vibeLabel = vibe?.title ?? 'balanced';
       const scaledAura = (auraScore ?? 500) / 10; // convert 0–1000 → 0–100
       const tip = await fetchInsiderTip(searchQuery, vibeLabel, scaledAura);
       setAiTip(tip);
@@ -480,7 +500,7 @@ export default function ExploreScreen() {
           <SectionHeader
             title="📍 Near USYD"
             rightLabel="See map"
-            onRight={() => {}}
+            onRight={() => { }}
           />
           <View style={s.nearbyList}>
             {NEAR_USYD.map((item, i) => (
@@ -507,7 +527,7 @@ export default function ExploreScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 8 },
 
@@ -575,7 +595,7 @@ const s = StyleSheet.create({
 
   // ── Filter pills
   filtersContainer: { marginBottom: 20 },
-  filtersScroll:    { paddingHorizontal: 16, gap: 8 },
+  filtersScroll: { paddingHorizontal: 16, gap: 8 },
   filterPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -610,7 +630,7 @@ const s = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 28,
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.2)',
+    borderColor: isDark ? 'rgba(45,212,191,0.2)' : 'rgba(45,212,191,0.1)',
     elevation: 6,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
@@ -619,22 +639,22 @@ const s = StyleSheet.create({
   },
   mapPark: {
     position: 'absolute',
-    backgroundColor: 'rgba(16,185,129,0.18)',
+    backgroundColor: isDark ? 'rgba(16,185,129,0.12)' : 'rgba(16,185,129,0.18)',
     borderRadius: 8,
   },
   mapWater: {
     position: 'absolute',
     bottom: 0, right: 0,
     width: '28%', height: '42%',
-    backgroundColor: 'rgba(14,165,233,0.22)',
+    backgroundColor: isDark ? 'rgba(14,165,233,0.15)' : 'rgba(14,165,233,0.22)',
     borderTopLeftRadius: 40,
   },
-  road: { position: 'absolute', backgroundColor: 'rgba(255,255,255,0.7)' },
+  road: { position: 'absolute', backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.7)' },
   roadH: { left: 0, right: 0, height: 2.5 },
-  roadV: { top: 0, bottom: 0, width: 2.5   },
+  roadV: { top: 0, bottom: 0, width: 2.5 },
   block: {
     position: 'absolute',
-    backgroundColor: 'rgba(130,165,158,0.38)',
+    backgroundColor: isDark ? 'rgba(130,165,158,0.2)' : 'rgba(130,165,158,0.38)',
     borderRadius: 5,
   },
   mapDotRing: {
@@ -642,7 +662,7 @@ const s = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: 'rgba(45,212,191,0.22)',
+    backgroundColor: isDark ? 'rgba(45,212,191,0.15)' : 'rgba(45,212,191,0.22)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -653,8 +673,8 @@ const s = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: '#fff',
   },
-  mapDotTeal:  { backgroundColor: colors.primary },
-  mapDotAmber: { backgroundColor: '#F59E0B'       },
+  mapDotTeal: { backgroundColor: colors.primary },
+  mapDotAmber: { backgroundColor: '#F59E0B' },
   usydPin: {
     position: 'absolute',
     top: '44%',
@@ -689,7 +709,7 @@ const s = StyleSheet.create({
   fullMapBtnText: { fontSize: 11, color: '#000', fontWeight: '800' },
 
   // ── Section wrapper
-  section:       { marginBottom: 26 },
+  section: { marginBottom: 26 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -712,8 +732,8 @@ const s = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
   },
-  trendingCard:  { width: 168, height: 200 },
-  trendingImg:   { borderRadius: 24 },
+  trendingCard: { width: 168, height: 200 },
+  trendingImg: { borderRadius: 24 },
   trendingGrad: {
     flex: 1,
     padding: 12,
@@ -733,15 +753,15 @@ const s = StyleSheet.create({
     letterSpacing: 0.5,
   },
   trendingBottom: { gap: 4 },
-  trendingTitle:  { fontSize: 14, fontWeight: '800', color: '#fff' },
+  trendingTitle: { fontSize: 14, fontWeight: '800', color: '#fff' },
   trendingMeta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   trendingRating: { fontSize: 11, color: '#D1D5DB', fontWeight: '600' },
-  trendingDot:    { color: '#6B7280', fontSize: 11 },
-  trendingDist:   { fontSize: 11, color: '#D1D5DB', fontWeight: '500' },
+  trendingDot: { color: '#6B7280', fontSize: 11 },
+  trendingDist: { fontSize: 11, color: '#D1D5DB', fontWeight: '500' },
 
   // ── Nearby list
   nearbyList: {
@@ -769,7 +789,7 @@ const s = StyleSheet.create({
     borderRadius: 16,
     backgroundColor: colors.surfaceLight,
   },
-  nearbyInfo:     { flex: 1, gap: 4 },
+  nearbyInfo: { flex: 1, gap: 4 },
   nearbyTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -798,59 +818,59 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginTop: 2,
   },
-  nearbyRatingGroup: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  nearbyRatingText:  { fontSize: 12, color: '#D1D5DB', fontWeight: '600' },
-  nearbyDistGroup:   { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  nearbyDistText:    { fontSize: 12, color: colors.primary, fontWeight: '600' },
+  nearbyRatingGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nearbyRatingText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '600',
+  },
+  nearbyDistGroup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  nearbyDistText: {
+    fontSize: 12,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
 });
 
-// ─── Insider tip card styles ──────────────────────────────────────────────────
-
-const ic = StyleSheet.create({
-  // Glassmorphism loading state
+const getInsiderStyles = (colors = {}) => StyleSheet.create({
   loadingCard: {
+    marginHorizontal: 16,
+    marginBottom: 20,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 20,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    marginHorizontal: 16,
-    marginBottom: 16,
-    paddingHorizontal: 18,
-    paddingVertical: 16,
-    borderRadius: 20,
-    backgroundColor: 'rgba(28,31,42,0.97)',
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.18)',
-    elevation: 4,
-    shadowColor: '#2DD4BF',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
+    borderColor: colors.border,
   },
   loadingText: {
     fontSize: 13,
     color: colors.textSecondary,
-    fontWeight: '600',
-    letterSpacing: 0.1,
+    fontWeight: '500',
   },
-
-  // Deep teal tip card
   card: {
     marginHorizontal: 16,
-    marginBottom: 16,
-    borderRadius: 24,
-    paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.25)',
-    overflow: 'hidden',
+    marginBottom: 24,
+    borderRadius: 20,
+    padding: 16,
     elevation: 8,
-    shadowColor: '#0D9488',
+    shadowColor: '#2DD4BF',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
-    shadowRadius: 16,
+    shadowRadius: 12,
+    position: 'relative',
+    overflow: 'hidden',
   },
   topAccent: {
     position: 'absolute',
@@ -858,103 +878,91 @@ const ic = StyleSheet.create({
     height: 1,
     backgroundColor: 'rgba(45,212,191,0.4)',
   },
-
-  // Header row
   header: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    alignItems: 'center',
+    marginBottom: 10,
   },
   labelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 6,
   },
-  sparkle: { fontSize: 15 },
+  sparkle: { fontSize: 14 },
   label: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '800',
-    color: colors.primary,
-    letterSpacing: 1.5,
+    color: 'rgba(45,212,191,0.9)',
+    letterSpacing: 1.2,
   },
   dismissBtn: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.08)',
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.2)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   dismissX: {
     fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '800',
-    lineHeight: 14,
+    color: 'rgba(255,255,255,0.4)',
+    fontWeight: '700',
   },
-
   divider: {
     height: 1,
-    backgroundColor: 'rgba(45,212,191,0.18)',
-    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    marginBottom: 12,
   },
-
   tipText: {
     fontSize: 14,
-    color: '#D4F0EC',
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.92)',
     lineHeight: 22,
-    letterSpacing: 0.1,
+    fontWeight: '500',
   },
 });
 
-// ─── Voice modal styles ───────────────────────────────────────────────────────
-
-const sv = StyleSheet.create({
+const getVoiceStyles = (colors = {}, isDark = false) => StyleSheet.create({
   backdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',
-    alignItems: 'center',
     justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   sheet: {
-    width: '80%',
     backgroundColor: colors.surface,
     borderRadius: 30,
-    paddingVertical: 32,
-    paddingHorizontal: 28,
+    padding: 30,
+    width: '100%',
+    maxWidth: 340,
     alignItems: 'center',
-    gap: 16,
+    gap: 20,
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.22)',
-    elevation: 20,
-    shadowColor: '#2DD4BF',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
+    borderColor: colors.border,
   },
   micWrap: {
-    width: 80,
-    height: 80,
+    width: 100,
+    height: 100,
     alignItems: 'center',
     justifyContent: 'center',
   },
   micRing: {
     position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(45,212,191,0.18)',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(45,212,191,0.2)',
   },
   micCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: 'rgba(45,212,191,0.14)',
-    borderWidth: 1.5,
-    borderColor: 'rgba(45,212,191,0.4)',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: colors.surfaceLight,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   micCircleDone: {
     backgroundColor: colors.primary,
@@ -964,37 +972,39 @@ const sv = StyleSheet.create({
     fontSize: 18,
     fontWeight: '800',
     color: colors.text,
-    letterSpacing: -0.2,
   },
   transcriptBox: {
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
     borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
+    padding: 16,
     width: '100%',
   },
   transcriptText: {
-    fontSize: 13,
+    fontSize: 14,
     color: colors.textSecondary,
-    fontWeight: '500',
-    lineHeight: 20,
     textAlign: 'center',
+    lineHeight: 20,
+    fontStyle: 'italic',
   },
   useBtn: {
-    width: '100%',
     backgroundColor: colors.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 30,
     borderRadius: 20,
-    paddingVertical: 13,
+    width: '100%',
     alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#2DD4BF',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
   },
-  useBtnText: { fontSize: 14, fontWeight: '800', color: '#000' },
-  cancelBtn:  { paddingVertical: 6 },
-  cancelText: { fontSize: 13, color: colors.textMuted, fontWeight: '600' },
+  useBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#000',
+  },
+  cancelBtn: {
+    paddingVertical: 10,
+  },
+  cancelText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: '600',
+  },
 });

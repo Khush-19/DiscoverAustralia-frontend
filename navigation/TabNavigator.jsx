@@ -9,7 +9,7 @@ import ExploreScreen from '../screens/ExploreScreen';
 import VibeScreen    from '../screens/VibeScreen';
 import SquadsScreen  from '../screens/SquadsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { colors }   from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
 
@@ -23,9 +23,17 @@ const TAB_CONFIG = [
 
 function CustomTabBar({ state, navigation }) {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
 
   return (
-    <View style={[styles.tabBar, { paddingBottom: insets.bottom > 0 ? insets.bottom : 12 }]}>
+    <View style={[
+      styles.tabBar, 
+      { 
+        paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+        backgroundColor: colors.surface,
+        borderTopColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+      }
+    ]}>
       {state.routes.map((route, index) => {
         const tab      = TAB_CONFIG.find(t => t.name === route.name);
         const isFocused = state.index === index;
@@ -52,10 +60,18 @@ function CustomTabBar({ state, navigation }) {
               accessibilityRole="button"
               accessibilityLabel="Vibe"
             >
-              <View style={[styles.fab, isFocused && styles.fabFocused]}>
-                <Zap size={22} color="#000000" fill="#000000" strokeWidth={2.5} />
+              <View style={[
+                styles.fab, 
+                { backgroundColor: colors.primary },
+                isFocused && { backgroundColor: colors.primaryDark }
+              ]}>
+                <Zap size={22} color={isDark ? "#000000" : "#FFFFFF"} fill={isDark ? "#000000" : "#FFFFFF"} strokeWidth={2.5} />
               </View>
-              <Text style={[styles.label, isFocused && styles.labelActive]}>Vibe</Text>
+              <Text style={[
+                styles.label, 
+                { color: colors.textMuted },
+                isFocused && { color: colors.primary, fontWeight: '700' }
+              ]}>Vibe</Text>
             </TouchableOpacity>
           );
         }
@@ -76,7 +92,11 @@ function CustomTabBar({ state, navigation }) {
               color={isFocused ? colors.primary : colors.textMuted}
               strokeWidth={isFocused ? 2.5 : 1.8}
             />
-            <Text style={[styles.label, isFocused && styles.labelActive]}>
+            <Text style={[
+              styles.label, 
+              { color: colors.textMuted },
+              isFocused && { color: colors.primary, fontWeight: '700' }
+            ]}>
               {tab.label}
             </Text>
           </TouchableOpacity>
@@ -104,15 +124,13 @@ export default function TabNavigator() {
 const styles = StyleSheet.create({
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#1C1F2A',
     borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.07)',
     paddingTop: 10,
     // Elevation / shadow
     elevation: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: -6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.15,
     shadowRadius: 16,
   },
 
@@ -136,28 +154,19 @@ const styles = StyleSheet.create({
     width: 58,
     height: 58,
     borderRadius: 29,
-    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
     // Teal glow
     elevation: 10,
-    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.55,
+    shadowOpacity: 0.35,
     shadowRadius: 14,
-  },
-  fabFocused: {
-    backgroundColor: colors.primaryDark,
   },
 
   label: {
     fontSize: 10,
     fontWeight: '500',
-    color: colors.textMuted,
     letterSpacing: 0.2,
   },
-  labelActive: {
-    color: colors.primary,
-    fontWeight: '700',
-  },
 });
+

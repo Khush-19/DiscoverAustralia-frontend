@@ -24,7 +24,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react-native';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { AURA_HISTORY, getTrendPercentage } from '../services/TrendAnalysis';
 import useFadeIn from '../hooks/useFadeIn';
 
@@ -73,6 +73,8 @@ const SETTINGS_ITEMS = [
 
 // 7-bar mini sparkline built from Views — no SVG dependency needed
 function MiniSparkline({ history }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const scores = history.map(d => d.score);
   const min = Math.min(...scores);
   const max = Math.max(...scores);
@@ -102,6 +104,9 @@ const sp = StyleSheet.create({
 });
 
 function SettingsRow({ Icon, label, hint, isLast }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <TouchableOpacity
       style={[s.settingRow, isLast && s.settingRowLast]}
@@ -128,10 +133,13 @@ function SettingsRow({ Icon, label, hint, isLast }) {
 
 export default function ProfileScreen() {
   const { auraScore } = useUser();
+  const { colors, isDark } = useTheme();
+  const s = React.useMemo(() => getStyles(colors), [colors]);
   const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
   const isUp = trendPct >= 0;
   const fadeStyle = useFadeIn();
+
 
   return (
     <Animated.View style={[{ flex: 1 }, fadeStyle]}>
@@ -214,6 +222,7 @@ export default function ProfileScreen() {
                     </Text>
                   </View>
                 </View>
+
 
                 {/* Progress track + teal glow fill */}
                 <View style={s.progressTrack}>
@@ -321,7 +330,7 @@ export default function ProfileScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 16 },
 
@@ -548,7 +557,7 @@ const s = StyleSheet.create({
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOpacity: 0.1,
     shadowRadius: 8,
   },
   statCell: {
@@ -604,7 +613,7 @@ const s = StyleSheet.create({
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
   },
   badgeEmoji: {
@@ -629,7 +638,7 @@ const s = StyleSheet.create({
   },
   settingsList: {
     marginHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
     borderRadius: 22,
     borderWidth: 1,
     borderColor: colors.border,
@@ -698,3 +707,4 @@ const s = StyleSheet.create({
     letterSpacing: 0.2,
   },
 });
+

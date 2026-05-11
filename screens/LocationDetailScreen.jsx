@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import {
   View,
   Text,
@@ -23,7 +24,7 @@ import {
   ShieldCheck,
 } from 'lucide-react-native';
 import { useUser } from '../context/UserContext';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { getLocationById, getTopMatch } from '../services/LocationService';
 
 const { width } = Dimensions.get('window');
@@ -33,9 +34,12 @@ const HERO_HEIGHT = 260;
 
 function UrgencyPill({ label }) {
   const isLow = label === 'Scheduled' || label === 'Preventive';
-  const bg    = isLow ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)';
-  const bdr   = isLow ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)';
-  const clr   = isLow ? '#10B981' : '#F59E0B';
+  const bg = isLow ? 'rgba(16,185,129,0.14)' : 'rgba(245,158,11,0.14)';
+  const bdr = isLow ? 'rgba(16,185,129,0.35)' : 'rgba(245,158,11,0.35)';
+  const clr = isLow ? '#10B981' : '#F59E0B';
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <View style={[s.urgencyPill, { backgroundColor: bg, borderColor: bdr }]}>
       <ShieldCheck size={11} color={clr} strokeWidth={2.5} />
@@ -47,6 +51,8 @@ function UrgencyPill({ label }) {
 // ─── Tag chip ────────────────────────────────────────────────────────────────
 
 function TagChip({ label }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   return (
     <View style={s.tagChip}>
       <Text style={s.tagChipText}>{label}</Text>
@@ -57,12 +63,14 @@ function TagChip({ label }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function LocationDetailScreen() {
-  const navigation   = useNavigation();
-  const route        = useRoute();
+  const navigation = useNavigation();
+  const route = useRoute();
   const { wearableStats, userName } = useUser();
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const locationId = route.params?.locationId;
-  const location   = locationId ? getLocationById(locationId) : getTopMatch();
+  const location = locationId ? getLocationById(locationId) : getTopMatch();
 
   if (!location) return null;
 
@@ -94,7 +102,7 @@ export default function LocationDetailScreen() {
         <View style={s.heroWrap}>
           <Image source={{ uri: location.image }} style={s.heroImg} />
           <LinearGradient
-            colors={['transparent', 'rgba(17,20,24,0.9)', '#111418']}
+            colors={['transparent', isDark ? 'rgba(10,14,18,0.9)' : 'rgba(0,0,0,0.6)', isDark ? '#0A0E12' : '#FFFFFF']}
             style={s.heroGrad}
           />
           {/* Hero overlay content */}
@@ -155,7 +163,7 @@ export default function LocationDetailScreen() {
         {/* ── AI Summary ─────────────────────────────────────────────────────── */}
         <View style={s.aiCard}>
           <LinearGradient
-            colors={['rgba(45,212,191,0.10)', 'rgba(14,165,233,0.06)', 'rgba(17,20,24,0.0)']}
+            colors={isDark ? ['rgba(45,212,191,0.10)', 'rgba(14,165,233,0.06)', 'transparent'] : ['rgba(45,212,191,0.05)', 'rgba(14,165,233,0.03)', 'transparent']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={s.aiGrad}
@@ -210,7 +218,7 @@ export default function LocationDetailScreen() {
           activeOpacity={0.85}
         >
           <LinearGradient
-            colors={[colors.primary, '#0D9488']}
+            colors={[colors.primary, colors.primaryDark || '#0D9488']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={s.goBtnGrad}
@@ -227,7 +235,7 @@ export default function LocationDetailScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 0 },
 
@@ -249,7 +257,7 @@ const s = StyleSheet.create({
 
   // ── Hero
   heroWrap: { width, height: HERO_HEIGHT, position: 'relative' },
-  heroImg:  { width, height: HERO_HEIGHT, resizeMode: 'cover' },
+  heroImg: { width, height: HERO_HEIGHT, resizeMode: 'cover' },
   heroGrad: {
     position: 'absolute',
     bottom: 0, left: 0, right: 0,
@@ -293,8 +301,8 @@ const s = StyleSheet.create({
   },
   aiMatchText: { fontSize: 11, color: colors.primary, fontWeight: '700' },
 
-  heroTitle:    { fontSize: 26, fontWeight: '800', color: '#fff', letterSpacing: -0.4 },
-  heroCategory: { fontSize: 13, color: 'rgba(255,255,255,0.65)', fontWeight: '500' },
+  heroTitle: { fontSize: 26, fontWeight: '800', color: isDark ? '#fff' : '#000', letterSpacing: -0.4 },
+  heroCategory: { fontSize: 13, color: isDark ? 'rgba(255,255,255,0.65)' : 'rgba(0,0,0,0.55)', fontWeight: '500' },
 
   // ── Meta row
   metaRow: {
@@ -348,7 +356,7 @@ const s = StyleSheet.create({
   costCard: {
     marginHorizontal: 16,
     marginTop: 18,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
     borderRadius: 22,
     padding: 16,
     borderWidth: 1,
@@ -368,7 +376,7 @@ const s = StyleSheet.create({
     borderRadius: 22,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.28)',
+    borderColor: isDark ? 'rgba(45,212,191,0.28)' : 'rgba(45,212,191,0.2)',
     elevation: 6,
     shadowColor: '#2DD4BF',
     shadowOffset: { width: 0, height: 0 },
@@ -389,7 +397,7 @@ const s = StyleSheet.create({
   aiStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
     borderRadius: 14,
     paddingVertical: 10,
     borderWidth: 1,

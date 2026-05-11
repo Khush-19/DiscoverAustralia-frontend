@@ -1,12 +1,14 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertTriangle, X, TrendingDown, Brain } from 'lucide-react-native';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { detectNegativeTrend, ACTIVITY_DROP_PCT } from '../services/TrendAnalysis';
 
 export default function TrendAlert() {
   const [dismissed, setDismissed] = useState(false);
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
   const pulse = useRef(new Animated.Value(0.55)).current;
 
   const hasTrend = detectNegativeTrend();
@@ -31,10 +33,14 @@ export default function TrendAlert() {
       <Animated.View style={[s.glowRing, { opacity: pulse }]} />
 
       <LinearGradient
-        colors={[
+        colors={isDark ? [
           'rgba(239,68,68,0.11)',
           'rgba(245,158,11,0.07)',
           'rgba(17,20,24,0.0)',
+        ] : [
+          'rgba(239,68,68,0.08)',
+          'rgba(245,158,11,0.05)',
+          'rgba(255,255,255,0)',
         ]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
@@ -84,14 +90,14 @@ export default function TrendAlert() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
   shell: {
     marginHorizontal: 16,
     marginBottom: 18,
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(239,68,68,0.28)',
+    borderColor: isDark ? 'rgba(239,68,68,0.28)' : 'rgba(239,68,68,0.15)',
     // Red ambient glow
     elevation: 8,
     shadowColor: '#EF4444',
@@ -104,7 +110,7 @@ const s = StyleSheet.create({
   // Pulsing fill that sits behind the gradient
   glowRing: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(239,68,68,0.08)',
+    backgroundColor: isDark ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.04)',
     borderRadius: 24,
   },
 
@@ -138,7 +144,7 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,

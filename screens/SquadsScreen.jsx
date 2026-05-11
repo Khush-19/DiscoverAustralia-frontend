@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,7 +16,7 @@ import {
   Check,
   Users,
 } from 'lucide-react-native';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { useUser } from '../context/UserContext';
 
 // ─── Static data ─────────────────────────────────────────────────────────────
@@ -69,10 +69,10 @@ const HISTORY = [
 ];
 
 // ─── Live pulsing dot ─────────────────────────────────────────────────────────
-//   The outer ring scale-animates from 1 → 2.4 and fades to 0 continuously,
-//   giving the impression of a broadcast / radio-wave pulse.
 
 function LiveDot() {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const scaleAnim   = useRef(new Animated.Value(1)).current;
   const opacityAnim = useRef(new Animated.Value(0.65)).current;
 
@@ -109,10 +109,12 @@ function LiveDot() {
 }
 
 // ─── Avatar stack ─────────────────────────────────────────────────────────────
-//   Overlaps circles using negative marginLeft on indices > 0.
-//   zIndex = avatars.length - i keeps the leftmost avatar on top of the stack.
 
-function AvatarStack({ avatars, extra = 0, cardBg = colors.surface }) {
+function AvatarStack({ avatars, extra = 0, cardBg }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+  const bgColor = cardBg || colors.surface;
+
   return (
     <View style={s.avatarStack}>
       {avatars.map((color, i) => (
@@ -124,7 +126,7 @@ function AvatarStack({ avatars, extra = 0, cardBg = colors.surface }) {
               backgroundColor: color,
               marginLeft:  i === 0 ? 0 : -10,
               zIndex:      avatars.length - i,
-              borderColor: cardBg,
+              borderColor: bgColor,
             },
           ]}
         />
@@ -133,7 +135,7 @@ function AvatarStack({ avatars, extra = 0, cardBg = colors.surface }) {
         <View
           style={[
             s.stackExtra,
-            { marginLeft: -10, borderColor: cardBg, zIndex: 0 },
+            { marginLeft: -10, borderColor: bgColor, zIndex: 0 },
           ]}
         >
           <Text style={s.stackExtraText}>+{extra}</Text>
@@ -146,6 +148,8 @@ function AvatarStack({ avatars, extra = 0, cardBg = colors.surface }) {
 // ─── Active squad card ────────────────────────────────────────────────────────
 
 function ActiveSquadCard({ item }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const { isSquadJoined, joinSquad } = useUser();
   const joined = isSquadJoined(item.id);
 
@@ -236,6 +240,9 @@ function ActiveSquadCard({ item }) {
 // ─── History item ─────────────────────────────────────────────────────────────
 
 function HistoryCard({ item, isLast }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <View style={[s.historyCard, !isLast && s.historyCardBorder]}>
       {/* Left: emoji icon + title + meta */}
@@ -260,12 +267,12 @@ function HistoryCard({ item, isLast }) {
   );
 }
 
-// ─── Section header with optional right element ───────────────────────────────
+// ─── Section header ───────────────────────────────────────────────────────────
 
 function SectionHeader({ children, right }) {
   return (
-    <View style={s.sectionHeader}>
-      <View style={s.sectionHeaderLeft}>{children}</View>
+    <View style={getStyles().sectionHeader}>
+      <View style={getStyles().sectionHeaderLeft}>{children}</View>
       {right && <View>{right}</View>}
     </View>
   );
@@ -274,6 +281,9 @@ function SectionHeader({ children, right }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function SquadsScreen() {
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors), [colors]);
+
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
       <ScrollView
@@ -301,12 +311,12 @@ export default function SquadsScreen() {
 
         {/* ── Active Now section ───────────────────────────────────────────── */}
         <View style={s.section}>
-          <SectionHeader>
+          <View style={s.sectionHeader}>
             <View style={s.liveSectionTitle}>
               <LiveDot />
               <Text style={s.sectionTitle}>Active Now</Text>
             </View>
-          </SectionHeader>
+          </View>
 
           <View style={s.cardList}>
             {ACTIVE_SQUADS.map(squad => (
@@ -317,9 +327,9 @@ export default function SquadsScreen() {
 
         {/* ── My History section ───────────────────────────────────────────── */}
         <View style={s.section}>
-          <SectionHeader>
+          <View style={s.sectionHeader}>
             <Text style={s.sectionTitle}>My History</Text>
-          </SectionHeader>
+          </View>
 
           <View style={s.historyList}>
             {HISTORY.map((item, i) => (
@@ -340,7 +350,7 @@ export default function SquadsScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 8 },
 
@@ -469,7 +479,7 @@ const s = StyleSheet.create({
     elevation: 4,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
+    shadowOpacity: 0.15,
     shadowRadius: 10,
   },
 
@@ -642,7 +652,7 @@ const s = StyleSheet.create({
   // ── History list
   historyList: {
     marginHorizontal: 16,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    backgroundColor: colors.isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
     borderRadius: 24,
     borderWidth: 1,
     borderColor: colors.border,

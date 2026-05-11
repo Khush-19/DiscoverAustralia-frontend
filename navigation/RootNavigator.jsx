@@ -1,10 +1,13 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import TabNavigator from './TabNavigator';
 import LocationDetailScreen from '../screens/LocationDetailScreen';
+import { useTheme } from '../context/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 
 export default function RootNavigator() {
+  const { colors } = useTheme();
+
   return (
     <Stack.Navigator
       screenOptions={{
@@ -12,7 +15,7 @@ export default function RootNavigator() {
         // Default push transition for any future stack screens
         animation: 'fade_from_bottom',
         animationDuration: 220,
-        contentStyle: { backgroundColor: '#111418' },
+        contentStyle: { backgroundColor: colors.background },
       }}
     >
       <Stack.Screen
@@ -32,3 +35,4 @@ export default function RootNavigator() {
     </Stack.Navigator>
   );
 }
+

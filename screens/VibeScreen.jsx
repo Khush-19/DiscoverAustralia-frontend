@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -14,13 +14,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { useUser } from '../context/UserContext';
+import { useTheme } from '../context/ThemeContext';
 import {
   X,
   Sparkles,
   ArrowRight,
   Zap,
 } from 'lucide-react-native';
-import { colors, vibeGradients } from '../constants/theme';
+import { vibeGradients } from '../constants/theme';
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 
@@ -84,6 +85,8 @@ function VibeCard({ item }) {
   const scale      = useRef(new Animated.Value(1)).current;
   const navigation = useNavigation();
   const { vibe, updateVibe } = useUser();
+  const { colors } = useTheme();
+  const s = getStyles(colors);
 
   const isActive = vibe?.id === item.id;
 
@@ -147,13 +150,16 @@ function VibeCard({ item }) {
 // ─── Active Squad-Up Card ─────────────────────────────────────────────────────
 
 function SquadUpCard() {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
+
   return (
     <View style={s.squadCard}>
       {/* Subtle teal glow border */}
       <View style={s.squadGlowBorder} />
 
       <LinearGradient
-        colors={['#1C2A28', '#151E1C']}
+        colors={isDark ? ['#1C2A28', '#151E1C'] : ['#E6F4F1', '#DDF0EC']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={s.squadGrad}
@@ -204,7 +210,7 @@ function SquadUpCard() {
         <View style={s.squadBtnRow}>
           <TouchableOpacity style={s.joinBtn} activeOpacity={0.85}>
             <LinearGradient
-              colors={[colors.primary, colors.primaryDark]}
+              colors={[colors.primary, colors.primaryDark || colors.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={s.joinBtnGrad}
@@ -227,6 +233,8 @@ function SquadUpCard() {
 
 function AISearchBar() {
   const [query, setQuery] = useState('');
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
 
   return (
     <View style={s.searchWrapper}>
@@ -266,6 +274,8 @@ function AISearchBar() {
 
 export default function VibeScreen() {
   const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors), [colors]);
 
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
@@ -322,7 +332,7 @@ export default function VibeScreen() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}) => StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   flex:   { flex: 1 },
 
@@ -469,12 +479,10 @@ const s = StyleSheet.create({
   },
   squadGlowBorder: {
     position: 'absolute',
-    inset: 0,
     borderRadius: 24,
     borderWidth: 1,
     borderColor: 'rgba(45,212,191,0.35)',
     zIndex: 1,
-    pointerEvents: 'none',
   },
   squadGrad: {
     padding: 18,
@@ -533,7 +541,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: '#151E1C',
+    borderColor: 'transparent',
   },
   avatarInitial: {
     fontSize: 9,
@@ -546,7 +554,7 @@ const s = StyleSheet.create({
     borderRadius: 15,
     backgroundColor: colors.surfaceLight,
     borderWidth: 2,
-    borderColor: '#151E1C',
+    borderColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: -10,
@@ -623,18 +631,13 @@ const s = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: colors.surface,
     borderRadius: 26,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    borderColor: colors.border,
     paddingLeft: 18,
     paddingRight: 6,
     paddingVertical: 6,
-    // Glassmorphism inner glow
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
     elevation: 2,
   },
   searchInput: {

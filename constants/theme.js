@@ -1,4 +1,20 @@
-export const colors = {
+export const lightColors = {
+  primary: '#2DD4BF',
+  primaryDark: '#0D9488',
+  background: '#F9FAFB',
+  surface: '#FFFFFF',
+  surfaceLight: '#F3F4F6',
+  text: '#111827',
+  textSecondary: '#4B5563',
+  textMuted: '#9CA3AF',
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  border: 'rgba(0,0,0,0.08)',
+  overlay: 'rgba(0,0,0,0.3)',
+};
+
+export const darkColors = {
   primary: '#2DD4BF',
   primaryDark: '#0D9488',
   background: '#111418',
@@ -13,6 +29,9 @@ export const colors = {
   border: 'rgba(255,255,255,0.08)',
   overlay: 'rgba(0,0,0,0.55)',
 };
+
+// Default colors (currently dark)
+export const colors = darkColors;
 
 export const vibeGradients = {
   // 2-stop (HomeScreen tile usage)
@@ -37,3 +56,4 @@ export const radius = {
   xl: 32,
   full: 9999,
 };
+

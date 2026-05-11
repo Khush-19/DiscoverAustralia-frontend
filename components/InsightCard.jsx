@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import {
   View,
@@ -22,7 +22,7 @@ import {
   MapPin,
 } from 'lucide-react-native';
 import { useUser } from '../context/UserContext';
-import { colors } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 const { height } = Dimensions.get('window');
 
@@ -34,6 +34,8 @@ const STEPS_THRESHOLD = 7000; // daily steps goal
 //   Shows a label, a current/max value, and a coloured progress bar.
 
 function StatBar({ Icon, label, value, maxValue, unit, threshold }) {
+  const { colors } = useTheme();
+  const s = getStyles(colors);
   const pct   = Math.min(value / maxValue, 1);
   const isLow = value < threshold;
   const fill  = isLow ? '#F59E0B' : colors.primary;
@@ -78,6 +80,9 @@ function StatBar({ Icon, label, value, maxValue, unit, threshold }) {
 // ─── Reasoning modal (bottom sheet) ──────────────────────────────────────────
 
 function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors, isDark);
+
   return (
     <Modal
       visible={visible}
@@ -223,6 +228,8 @@ export default function InsightCard() {
   const [modalVisible, setModalVisible] = useState(false);
   const { wearableStats } = useUser();
   const navigation = useNavigation();
+  const { colors, isDark } = useTheme();
+  const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   if (!wearableStats || wearableStats.sleepHours >= SLEEP_THRESHOLD) return null;
 
@@ -231,10 +238,14 @@ export default function InsightCard() {
       {/* ── Card shell with teal glow ──────────────────────────────────────── */}
       <View style={s.cardShell}>
         <LinearGradient
-          colors={[
+          colors={isDark ? [
             'rgba(45,212,191,0.11)',
             'rgba(14,165,233,0.07)',
             'rgba(17,20,24,0.0)',
+          ] : [
+            'rgba(45,212,191,0.08)',
+            'rgba(14,165,233,0.05)',
+            'rgba(255,255,255,0)',
           ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -289,7 +300,7 @@ export default function InsightCard() {
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const s = StyleSheet.create({
+const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
 
   // ── InsightCard shell
   cardShell: {
@@ -298,7 +309,7 @@ const s = StyleSheet.create({
     borderRadius: 24,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.3)',
+    borderColor: isDark ? 'rgba(45,212,191,0.3)' : 'rgba(45,212,191,0.15)',
     // Teal ambient glow
     elevation: 8,
     shadowColor: '#2DD4BF',
@@ -392,7 +403,7 @@ const s = StyleSheet.create({
     maxHeight: height * 0.82,
     // Teal top edge glow
     borderTopWidth: 1,
-    borderColor: 'rgba(45,212,191,0.25)',
+    borderColor: isDark ? 'rgba(45,212,191,0.25)' : 'rgba(45,212,191,0.15)',
     elevation: 24,
     shadowColor: '#2DD4BF',
     shadowOffset: { width: 0, height: -6 },
@@ -403,7 +414,7 @@ const s = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.1)',
     alignSelf: 'center',
     marginBottom: 18,
   },
@@ -486,7 +497,7 @@ const s = StyleSheet.create({
   },
   statTrack: {
     height: 7,
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: isDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
     borderRadius: 6,
     overflow: 'visible',
     position: 'relative',
