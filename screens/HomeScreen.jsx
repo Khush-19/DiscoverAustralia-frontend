@@ -1,3 +1,4 @@
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -5,66 +6,35 @@ import {
   TouchableOpacity,
   ImageBackground,
   Animated,
+  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  Bell,
-  Star,
-  MapPin,
-  ChevronRight,
-  Flame,
-  Clock,
-  Navigation,
-} from 'lucide-react-native';
-import { vibeGradients } from '../constants/theme';
+import { Star, ChevronRight, Flame, Clock, Navigation } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../context/UserContext';
+import { useLocation } from '../context/LocationContext';
+import { VIBES } from '../constants/vibes';
+import { discoveryService } from '../services/discoveryService';
 import InsightCard from '../components/InsightCard';
 import TrendAlert from '../components/TrendAlert';
+import LocationBanner from '../components/LocationBanner';
+import VibePicker from '../components/VibePicker';
+import SpotCard from '../components/SpotCard';
+import SquadBanner from '../components/SquadBanner';
 import useFadeIn from '../hooks/useFadeIn';
 
 
-// ─── Static data ────────────────────────────────────────────────────────────
+// ─── Static data ─────────────────────────────────────────────────────────────
 
 const QUICK_ACTIONS = [
-  { id: '1', label: 'Free Today', emoji: '💸' },
+  { id: '1', label: 'Free Today',   emoji: '💸' },
   { id: '2', label: 'Join a Squad', emoji: '👥' },
-  { id: '3', label: 'Near Me', emoji: '📍' },
-  { id: '4', label: 'Beach Day', emoji: '🏖️' },
+  { id: '3', label: 'Near Me',      emoji: '📍' },
+  { id: '4', label: 'Beach Day',    emoji: '🏖️' },
 ];
 
-const VIBES = [
-  { id: '1', label: 'Bored & Broke', sub: '4 spots', emoji: '😴', grad: vibeGradients.boredBroke },
-  { id: '2', label: 'Study Break', sub: '6 spots', emoji: '📚', grad: vibeGradients.studyBreak },
-  { id: '3', label: 'Aussie Classics', sub: '24 spots', emoji: '🦘', grad: vibeGradients.aussieClassics },
-];
-
-const TRENDING = [
-  {
-    id: '1',
-    title: 'Opera House Walk',
-    badge: 'FREE',
-    badgeColor: '#10B981',
-    rating: 5.0,
-    distance: '4.1km',
-    duration: '2.5 hrs',
-    image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=400&q=80',
-  },
-  {
-    id: '2',
-    title: 'Chinatown Market',
-    badge: 'TODAY',
-    badgeColor: '#F59E0B',
-    rating: 4.8,
-    distance: '3.1km',
-    duration: '1.5 hrs',
-    image: 'https://images.unsplash.com/photo-1555992336-03a23c7b20ee?w=400&q=80',
-  },
-];
-
-const SQUAD_AVATARS = ['#EF4444', '#8B5CF6', '#3B82F6'];
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
 
@@ -83,64 +53,37 @@ function SectionHeader({ title, onSeeAll }) {
   );
 }
 
-function VibeCard({ item }) {
-  const { colors } = useTheme();
-  const s = getStyles(colors);
-
-  return (
-    <TouchableOpacity activeOpacity={0.85} style={s.vibeCardShell}>
-      <LinearGradient
-        colors={item.grad}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.vibeCard}
-      >
-        <Text style={s.vibeEmoji}>{item.emoji}</Text>
-        <Text style={s.vibeLabel}>{item.label}</Text>
-        <Text style={s.vibeSub}>{item.sub}</Text>
-      </LinearGradient>
-    </TouchableOpacity>
-  );
-}
-
-function TrendingCard({ item }) {
-  const { colors } = useTheme();
-  const s = getStyles(colors);
-
-  return (
-    <TouchableOpacity activeOpacity={0.85} style={s.trendingShell}>
-      <ImageBackground
-        source={{ uri: item.image }}
-        style={s.trendingCard}
-        imageStyle={s.trendingImage}
-      >
-        <LinearGradient
-          colors={['transparent', 'rgba(0,0,0,0.88)']}
-          style={s.trendingGrad}
-        >
-          <View style={[s.trendingBadge, { backgroundColor: item.badgeColor }]}>
-            <Text style={s.trendingBadgeText}>{item.badge}</Text>
-          </View>
-          <Text style={s.trendingTitle}>{item.title}</Text>
-          <View style={s.trendingMeta}>
-            <Star size={10} color="#F59E0B" fill="#F59E0B" />
-            <Text style={s.trendingMetaText}>{item.rating}</Text>
-            <Text style={s.dot}>·</Text>
-            <MapPin size={10} color="#9CA3AF" />
-            <Text style={s.trendingMetaText}>{item.distance}</Text>
-          </View>
-        </LinearGradient>
-      </ImageBackground>
-    </TouchableOpacity>
-  );
-}
+// VibeCard and TrendingCard replaced by shared VibePicker and SpotCard components
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
-  const fadeStyle = useFadeIn();
-  const { colors, isDark } = useTheme();
+  const fadeStyle              = useFadeIn();
+  const { colors, isDark }     = useTheme();
+  const { userName, updateVibe } = useUser();
+  const { coords }             = useLocation();
   const s = React.useMemo(() => getStyles(colors), [colors]);
+
+  const [selectedVibe,  setSelectedVibe]  = useState(null);
+  const [spots,         setSpots]         = useState([]);
+  const [spotsLoading,  setSpotsLoading]  = useState(false);
+
+  // Fetch spots whenever the selected vibe or user's coords change
+  useEffect(() => {
+    if (!selectedVibe) return;
+    let cancelled = false;
+    setSpotsLoading(true);
+    discoveryService.getSpotsByVibe(selectedVibe.id, coords)
+      .then(data  => { if (!cancelled) setSpots(data); })
+      .catch(()   => {})
+      .finally(() => { if (!cancelled) setSpotsLoading(false); });
+    return () => { cancelled = true; };
+  }, [selectedVibe?.id, coords]);
+
+  function handleVibeSelect(vibe) {
+    setSelectedVibe(vibe);
+    updateVibe(vibe); // sync to UserContext for Aura engine
+  }
 
   return (
     <Animated.View style={[{ flex: 1 }, fadeStyle]}>
@@ -153,15 +96,19 @@ export default function HomeScreen() {
 
           {/* ── Header ─────────────────────────────────────────────────────── */}
           <View style={s.header}>
-            <View>
-              <Text style={s.locationLine}>STAY • SYDNEY, 28°C ☀️</Text>
-              <Text style={s.greeting}>Hey, Maya 👋</Text>
+            <View style={s.headerLeft}>
+              {/* LocationBanner replaces the hardcoded city/temp line */}
+              <LocationBanner />
+              <Text style={s.greeting}>
+                Hey, {userName?.split(' ')[0] ?? 'Explorer'} 👋
+              </Text>
             </View>
             <TouchableOpacity style={s.avatarWrap} activeOpacity={0.85}>
               <View style={s.avatar}>
-                <Text style={s.avatarInitials}>MA</Text>
+                <Text style={s.avatarInitials}>
+                  {userName ? userName.slice(0, 2).toUpperCase() : 'ME'}
+                </Text>
               </View>
-              {/* Notification badge */}
               <View style={s.notifDot} />
             </TouchableOpacity>
           </View>
@@ -240,64 +187,39 @@ export default function HomeScreen() {
 
           {/* ── Pick Your Vibe ──────────────────────────────────────────────── */}
           <View style={s.section}>
-            <SectionHeader title="Pick Your Vibe" onSeeAll={() => { }} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.vibeScroll}
-            >
-              {VIBES.map(v => <VibeCard key={v.id} item={v} />)}
-            </ScrollView>
+            <SectionHeader title="Pick Your Vibe" onSeeAll={() => {}} />
+            <VibePicker
+              vibes={VIBES}
+              selectedId={selectedVibe?.id ?? null}
+              onSelect={handleVibeSelect}
+            />
           </View>
 
-          {/* ── Trending Today ──────────────────────────────────────────────── */}
+          {/* ── Trending Today / Vibe Spots ─────────────────────────────────── */}
           <View style={s.section}>
-            <SectionHeader title="🔥 Trending Today" onSeeAll={() => { }} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={s.trendingScroll}
-            >
-              {TRENDING.map(t => <TrendingCard key={t.id} item={t} />)}
-            </ScrollView>
+            <SectionHeader
+              title={selectedVibe ? `${selectedVibe.emoji} ${selectedVibe.label}` : '🔥 Trending Today'}
+              onSeeAll={() => {}}
+            />
+            {spotsLoading ? (
+              <View style={s.spotsLoader}>
+                <ActivityIndicator color={colors.primary} />
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={s.spotsScroll}
+              >
+                {spots.map(spot => (
+                  <SpotCard key={spot.id} spot={spot} />
+                ))}
+              </ScrollView>
+            )}
           </View>
 
-          {/* ── Squad-Up Banner ─────────────────────────────────────────────── */}
-          <TouchableOpacity style={s.squadBanner} activeOpacity={0.85}>
-            <View style={s.squadLeft}>
-
-              {/* Title row with live pill */}
-              <View style={s.squadTitleRow}>
-                <Text style={s.squadTitle}>Squad-Up 🏃</Text>
-                <View style={s.livePill}>
-                  <View style={s.liveDot} />
-                  <Text style={s.liveText}>Live</Text>
-                </View>
-              </View>
-
-              <Text style={s.squadSub}>Students heading to Bondi</Text>
-
-              {/* Avatars + stat pills */}
-              <View style={s.squadRow}>
-                {SQUAD_AVATARS.map((c, i) => (
-                  <View
-                    key={i}
-                    style={[s.squadAvatar, { backgroundColor: c, marginLeft: i === 0 ? 0 : -8 }]}
-                  />
-                ))}
-                <View style={s.statPill}>
-                  <Text style={s.statPillText}>3→</Text>
-                </View>
-                <View style={[s.statPill, s.statPillBlue]}>
-                  <Text style={[s.statPillText, s.statPillTextBlue]}>Bondi</Text>
-                </View>
-              </View>
-            </View>
-
-            <TouchableOpacity style={s.joinBtn} activeOpacity={0.85}>
-              <Text style={s.joinBtnText}>Join</Text>
-            </TouchableOpacity>
-          </TouchableOpacity>
+          {/* ── Squad-Up Banner — live, data-driven via SquadContext ──────── */}
+          <SquadBanner />
 
           <View style={{ height: 24 }} />
         </ScrollView>
@@ -321,12 +243,8 @@ const getStyles = (colors) => StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 14,
   },
-  locationLine: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: colors.textSecondary,
-    letterSpacing: 0.6,
-    marginBottom: 3,
+  headerLeft: {
+    flex: 1,
   },
   greeting: {
     fontSize: 30,
@@ -448,106 +366,10 @@ const getStyles = (colors) => StyleSheet.create({
   seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   seeAllText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
 
-  // ── Vibe cards
-  vibeScroll: { paddingHorizontal: 16, gap: 10 },
-  vibeCardShell: { borderRadius: 20, overflow: 'hidden' },
-  vibeCard: {
-    width: 132,
-    height: 112,
-    padding: 14,
-    justifyContent: 'flex-end',
-  },
-  vibeEmoji: { fontSize: 26, marginBottom: 5 },
-  vibeLabel: { fontSize: 13, fontWeight: '800', color: '#fff', lineHeight: 17 },
-  vibeSub: { fontSize: 10, color: 'rgba(255,255,255,0.68)', fontWeight: '500', marginTop: 2 },
+  // ── Spots feed (SpotCard horizontal list)
+  spotsScroll: { paddingHorizontal: 16, gap: 12 },
+  spotsLoader: { height: 158, alignItems: 'center', justifyContent: 'center' },
 
-  // ── Trending cards
-  trendingScroll: { paddingHorizontal: 16, gap: 12 },
-  trendingShell: { borderRadius: 20, overflow: 'hidden' },
-  trendingCard: { width: 162, height: 148, justifyContent: 'flex-end' },
-  trendingImage: { borderRadius: 20 },
-  trendingGrad: {
-    flex: 1,
-    padding: 11,
-    justifyContent: 'flex-end',
-    borderRadius: 20,
-  },
-  trendingBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    marginBottom: 6,
-  },
-  trendingBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800', letterSpacing: 0.5 },
-  trendingTitle: { fontSize: 13, fontWeight: '700', color: '#fff', marginBottom: 4 },
-  trendingMeta: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  trendingMetaText: { fontSize: 10, color: '#D1D5DB', fontWeight: '500' },
-
-  // ── Squad banner
-  squadBanner: {
-    marginHorizontal: 16,
-    backgroundColor: colors.surface,
-    borderRadius: 22,
-    padding: 16,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: colors.border,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-  },
-  squadLeft: { flex: 1 },
-  squadTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
-  squadTitle: { fontSize: 15, fontWeight: '800', color: colors.text },
-  livePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: 'rgba(16,185,129,0.15)',
-    borderRadius: 10,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
-  liveText: { fontSize: 10, color: colors.success, fontWeight: '700' },
-  squadSub: { fontSize: 12, color: colors.textSecondary, marginBottom: 10 },
-  squadRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  squadAvatar: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    borderWidth: 1.5,
-    borderColor: colors.background,
-  },
-  statPill: {
-    backgroundColor: 'rgba(45,212,191,0.14)',
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.25)',
-    marginLeft: 4,
-  },
-  statPillText: { fontSize: 10, color: colors.primary, fontWeight: '700' },
-  statPillBlue: { backgroundColor: 'rgba(59,130,246,0.14)', borderColor: 'rgba(59,130,246,0.25)' },
-  statPillTextBlue: { color: '#60A5FA' },
-  joinBtn: {
-    backgroundColor: colors.primary,
-    borderRadius: 18,
-    paddingHorizontal: 22,
-    paddingVertical: 11,
-    marginLeft: 12,
-    elevation: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-  },
-  joinBtnText: { color: '#000', fontSize: 13, fontWeight: '800' },
+  // Squad-Up banner is now <SquadBanner /> — styles live in SquadBanner.jsx
 });
 

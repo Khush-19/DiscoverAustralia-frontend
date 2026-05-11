@@ -21,57 +21,7 @@ import {
   ArrowRight,
   Zap,
 } from 'lucide-react-native';
-import { vibeGradients } from '../constants/theme';
-
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const VIBES = [
-  {
-    id:       '1',
-    title:    'Bored & Broke',
-    subtitle: 'Free things to do around you',
-    emoji:    '😴',
-    spots:    12,
-    grad:     vibeGradients.boredBrokeFull,
-    spotsAlpha: 'rgba(0,0,0,0.25)',
-  },
-  {
-    id:       '2',
-    title:    'Study Break',
-    subtitle: 'Recharge spots & quiet cafes',
-    emoji:    '📚',
-    spots:    8,
-    grad:     vibeGradients.studyBreakFull,
-    spotsAlpha: 'rgba(0,0,0,0.22)',
-  },
-  {
-    id:       '3',
-    title:    'Aussie Classics',
-    subtitle: 'Iconic local experiences',
-    emoji:    '🦘',
-    spots:    24,
-    grad:     vibeGradients.aussieClassicsFull,
-    spotsAlpha: 'rgba(0,0,0,0.2)',
-  },
-  {
-    id:       '4',
-    title:    'Night Out',
-    subtitle: 'After-dark Sydney game',
-    emoji:    '🌙',
-    spots:    16,
-    grad:     vibeGradients.nightOutFull,
-    spotsAlpha: 'rgba(0,0,0,0.28)',
-  },
-  {
-    id:       '5',
-    title:    'Beach Vibes',
-    subtitle: 'Sun, sand & surf today',
-    emoji:    '🏄',
-    spots:    9,
-    grad:     vibeGradients.beachVibesFull,
-    spotsAlpha: 'rgba(0,0,0,0.22)',
-  },
-];
+import { VIBES } from '../constants/vibes';
 
 const SQUAD_AVATARS = [
   { color: '#EF4444', initials: 'AK' },
@@ -114,7 +64,7 @@ function VibeCard({ item }) {
         style={s.vibeCardTouch}
       >
         <LinearGradient
-          colors={item.grad}
+          colors={item.colorGradientFull}
           start={{ x: 0, y: 0.5 }}
           end={{ x: 1, y: 0.5 }}
           style={s.vibeCard}
@@ -126,7 +76,7 @@ function VibeCard({ item }) {
 
           {/* Centre — title + subtitle */}
           <View style={s.vibeTextBlock}>
-            <Text style={s.vibeTitle}>{item.title}</Text>
+            <Text style={s.vibeTitle}>{item.label}</Text>
             <Text style={s.vibeSub} numberOfLines={1}>{item.subtitle}</Text>
           </View>
 

@@ -9,6 +9,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useUser } from '../context/UserContext';
+import { useAuth } from '../context/AuthContext';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -49,11 +50,7 @@ const AURA_BADGES = [
   },
 ];
 
-const STATS = [
-  { value: '24', label: 'Places' },
-  { value: '8', label: 'Squads' },
-  { value: '12', label: 'Actions' },
-];
+// Squads count is derived at render time — see ProfileScreen component below
 
 const BADGES = [
   { id: '1', label: 'Beach Lover', emoji: '🏖️', from: '#0C4A6E', to: '#0EA5E9' },
@@ -132,13 +129,21 @@ function SettingsRow({ Icon, label, hint, isLast }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const { auraScore } = useUser();
+  const { auraScore, activeSquads } = useUser();
+  const { signOut } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
-  const auraPct = auraScore / AURA_MAX;
+  const auraPct  = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
-  const isUp = trendPct >= 0;
+  const isUp     = trendPct >= 0;
   const fadeStyle = useFadeIn();
+
+  // Squad count updates live whenever the user joins a new squad
+  const STATS = [
+    { value: '24',                        label: 'Places'  },
+    { value: String(activeSquads.length), label: 'Squads'  },
+    { value: '12',                        label: 'Actions' },
+  ];
 
 
   return (
@@ -316,7 +321,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* ── Sign Out ─────────────────────────────────────────────────────── */}
-          <TouchableOpacity style={s.signOutBtn} activeOpacity={0.75}>
+          <TouchableOpacity style={s.signOutBtn} activeOpacity={0.75} onPress={signOut}>
             <LogOut size={16} color="#FCA5A5" strokeWidth={2.5} />
             <Text style={s.signOutText}>Sign Out</Text>
           </TouchableOpacity>

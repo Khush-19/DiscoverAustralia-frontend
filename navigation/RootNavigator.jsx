@@ -1,38 +1,89 @@
+import React from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import TabNavigator from './TabNavigator';
-import LocationDetailScreen from '../screens/LocationDetailScreen';
+
+import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+
+import TabNavigator       from './TabNavigator';
+import LocationDetailScreen from '../screens/LocationDetailScreen';
+import LoginScreen        from '../screens/auth/LoginScreen';
+import RegisterScreen     from '../screens/auth/RegisterScreen';
 
 const Stack = createNativeStackNavigator();
 
-export default function RootNavigator() {
-  const { colors } = useTheme();
+// ─── Auth stack (unauthenticated) ─────────────────────────────────────────────
 
+function AuthStack() {
+  const { colors } = useTheme();
   return (
     <Stack.Navigator
       screenOptions={{
         headerShown: false,
-        // Default push transition for any future stack screens
+        contentStyle: { backgroundColor: colors.background },
+        // Slide-up feels more modern for auth flows
+        animation: 'slide_from_bottom',
+        animationDuration: 260,
+      }}
+    >
+      <Stack.Screen name="Login"    component={LoginScreen}    />
+      <Stack.Screen name="Register" component={RegisterScreen} options={{ animation: 'slide_from_right' }} />
+    </Stack.Navigator>
+  );
+}
+
+// ─── App stack (authenticated) ────────────────────────────────────────────────
+
+function AppStack() {
+  const { colors } = useTheme();
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerShown: false,
         animation: 'fade_from_bottom',
         animationDuration: 220,
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen
-        name="Tabs"
-        component={TabNavigator}
-        options={{ animation: 'none' }}
-      />
-      <Stack.Screen
-        name="LocationDetail"
-        component={LocationDetailScreen}
-        options={{
-          presentation: 'modal',
-          animation: 'slide_from_bottom',
-          animationDuration: 280,
-        }}
+      <Stack.Screen name="Tabs"           component={TabNavigator}          options={{ animation: 'none' }} />
+      <Stack.Screen name="LocationDetail" component={LocationDetailScreen}
+        options={{ presentation: 'modal', animation: 'slide_from_bottom', animationDuration: 280 }}
       />
     </Stack.Navigator>
   );
 }
 
+// ─── Splash / loading screen ──────────────────────────────────────────────────
+// Shown for the ~200 ms while bootstrapAsync reads the secure store on cold start.
+// Keeping it minimal avoids a flash of wrong content.
+
+function SplashScreen() {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.splash, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+    </View>
+  );
+}
+
+// ─── Root navigator ───────────────────────────────────────────────────────────
+// Decision tree:
+//   isLoading  → SplashScreen   (secure-store check in progress)
+//   userToken  → AppStack       (valid session exists)
+//   otherwise  → AuthStack      (no session, show login)
+
+export default function RootNavigator() {
+  const { isLoading, userToken } = useAuth();
+
+  if (isLoading) return <SplashScreen />;
+
+  return userToken ? <AppStack /> : <AuthStack />;
+}
+
+const styles = StyleSheet.create({
+  splash: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

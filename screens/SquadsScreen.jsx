@@ -17,51 +17,10 @@ import {
   Users,
 } from 'lucide-react-native';
 import { useTheme } from '../context/ThemeContext';
-import { useUser } from '../context/UserContext';
+import { useUser }  from '../context/UserContext';
+import { useSquad } from '../context/SquadContext';
 
-// ─── Static data ─────────────────────────────────────────────────────────────
-
-const ACTIVE_SQUADS = [
-  {
-    id:         '1',
-    title:      'Bondi Beach Day',
-    subtitle:   'Sunday beach day — all welcome!',
-    spotsLeft:  5,
-    startsIn:   'Today',
-    day:        'Today',
-    time:       '4:30 PM',
-    category:   'Aussie Classics',
-    tagColor:   '#0D9488',
-    avatars:    ['#EF4444', '#8B5CF6', '#3B82F6'],
-    extraCount: 12,
-  },
-  {
-    id:         '2',
-    title:      'Chinatown Food Tour',
-    subtitle:   'Best dumplings & bubble tea near Haymarket',
-    spotsLeft:  3,
-    startsIn:   'Tonight',
-    day:        'Tonight',
-    time:       '6:30 PM',
-    category:   "Bored & Broke",
-    tagColor:   '#D97706',
-    avatars:    ['#10B981', '#F97316', '#EC4899'],
-    extraCount: 6,
-  },
-  {
-    id:         '3',
-    title:      'Botanic Garden Picnic',
-    subtitle:   'Bring snacks, blankets & good vibes!',
-    spotsLeft:  10,
-    startsIn:   'Saturday',
-    day:        'Saturday',
-    time:       '17:00',
-    category:   'Study Break',
-    tagColor:   '#0EA5E9',
-    avatars:    ['#14B8A6', '#A855F7', '#F43F5E'],
-    extraCount: 8,
-  },
-];
+// Static data removed — squads now come from SquadContext (live, proximity-sorted)
 
 const HISTORY = [
   { id: '1', icon: '📚', title: 'USYD Study Sesh',  members: 4, when: 'Last Tuesday' },
@@ -110,34 +69,32 @@ function LiveDot() {
 
 // ─── Avatar stack ─────────────────────────────────────────────────────────────
 
-function AvatarStack({ avatars, extra = 0, cardBg }) {
+// avatars: array of { initials: string, color: string } from SquadContext
+function AvatarStack({ avatars = [], extra = 0, cardBg }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const bgColor = cardBg || colors.surface;
 
   return (
     <View style={s.avatarStack}>
-      {avatars.map((color, i) => (
+      {avatars.slice(0, 3).map((a, i) => (
         <View
           key={i}
           style={[
             s.stackAvatar,
             {
-              backgroundColor: color,
+              backgroundColor: a.color,
               marginLeft:  i === 0 ? 0 : -10,
-              zIndex:      avatars.length - i,
+              zIndex:      3 - i,
               borderColor: bgColor,
             },
           ]}
-        />
+        >
+          <Text style={s.stackAvatarInitials}>{a.initials}</Text>
+        </View>
       ))}
       {extra > 0 && (
-        <View
-          style={[
-            s.stackExtra,
-            { marginLeft: -10, borderColor: bgColor, zIndex: 0 },
-          ]}
-        >
+        <View style={[s.stackExtra, { marginLeft: -10, borderColor: bgColor, zIndex: 0 }]}>
           <Text style={s.stackExtraText}>+{extra}</Text>
         </View>
       )}
@@ -150,7 +107,8 @@ function AvatarStack({ avatars, extra = 0, cardBg }) {
 function ActiveSquadCard({ item }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
-  const { isSquadJoined, joinSquad } = useUser();
+  const { isSquadJoined } = useUser();
+  const { joinSquad }     = useSquad();
   const joined = isSquadJoined(item.id);
 
   return (
@@ -203,8 +161,8 @@ function ActiveSquadCard({ item }) {
         {/* RIGHT: avatar stack (Row 2 analog) + Join Squad button (Row 3 analog) */}
         <View style={s.cardRow2Right}>
           <AvatarStack
-            avatars={item.avatars}
-            extra={item.extraCount}
+            avatars={item.memberAvatars ?? []}
+            extra={Math.max(0, (item.memberCount ?? 0) - 3)}
             cardBg={colors.surface}
           />
           {joined ? (
@@ -281,7 +239,8 @@ function SectionHeader({ children, right }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function SquadsScreen() {
-  const { colors, isDark } = useTheme();
+  const { colors, isDark }  = useTheme();
+  const { nearbySquads, isLoading, createSquad } = useSquad();
   const s = useMemo(() => getStyles(colors), [colors]);
 
   return (
@@ -299,11 +258,15 @@ export default function SquadsScreen() {
             <View style={s.activeCountRow}>
               <View style={s.activeCountDot} />
               <Text style={s.activeCountText}>
-                3 squads forming near you right now
+                {nearbySquads.length} squad{nearbySquads.length !== 1 ? 's' : ''} forming near you right now
               </Text>
             </View>
           </View>
-          <TouchableOpacity style={s.createBtn} activeOpacity={0.82}>
+          <TouchableOpacity
+            style={s.createBtn}
+            activeOpacity={0.82}
+            onPress={() => createSquad(null)}
+          >
             <Plus size={15} color="#000" strokeWidth={2.8} />
             <Text style={s.createBtnText}>Create</Text>
           </TouchableOpacity>
@@ -319,7 +282,7 @@ export default function SquadsScreen() {
           </View>
 
           <View style={s.cardList}>
-            {ACTIVE_SQUADS.map(squad => (
+            {nearbySquads.map(squad => (
               <ActiveSquadCard key={squad.id} item={squad} />
             ))}
           </View>
@@ -593,8 +556,10 @@ const getStyles = (colors = {}) => StyleSheet.create({
     height: 30,
     borderRadius: 15,
     borderWidth: 2.5,
-    // borderColor set dynamically from cardBg prop
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  stackAvatarInitials: { fontSize: 9, fontWeight: '800', color: '#fff' },
   stackExtra: {
     width: 30,
     height: 30,
