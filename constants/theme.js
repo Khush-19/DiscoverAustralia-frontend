@@ -12,6 +12,8 @@ export const lightColors = {
   error: '#EF4444',
   border: 'rgba(0,0,0,0.08)',
   overlay: 'rgba(0,0,0,0.3)',
+  authGradient: ['#F0FAFA', '#F9FAFB', '#ECFDF5'],
+  buttonText: '#FFFFFF',
 };
 
 export const darkColors = {
@@ -28,6 +30,8 @@ export const darkColors = {
   error: '#EF4444',
   border: 'rgba(255,255,255,0.08)',
   overlay: 'rgba(0,0,0,0.55)',
+  authGradient: ['#0A0D14', '#111827', '#0D1A1A'],
+  buttonText: '#000000',
 };
 
 // Default colors (currently dark)

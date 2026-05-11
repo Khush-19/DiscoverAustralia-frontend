@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -47,7 +47,7 @@ export default function LoginScreen({ navigation }) {
 
   const passwordRef = useRef(null);
 
-  const s = getStyles(colors, isDark);
+  const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   async function handleLogin() {
     const validationError = validate(email.trim(), password);
@@ -69,7 +69,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <LinearGradient
-      colors={isDark ? ['#0A0D14', '#111827', '#0D1A1A'] : ['#F0FAFA', '#F9FAFB', '#ECFDF5']}
+      colors={colors.authGradient}
       style={s.gradient}
     >
       <SafeAreaView style={s.safeArea}>
@@ -177,7 +177,7 @@ export default function LoginScreen({ navigation }) {
                     style={s.primaryBtnGradient}
                   >
                     {isLoading
-                      ? <ActivityIndicator color={isDark ? '#000' : '#fff'} size="small" />
+                      ? <ActivityIndicator color={colors.buttonText} size="small" />
                       : <Text style={s.primaryBtnText}>Log In</Text>
                     }
                   </LinearGradient>
@@ -313,7 +313,7 @@ function getStyles(colors, isDark) {
     primaryBtnText: {
       fontSize: 16,
       fontWeight: '700',
-      color: isDark ? '#000000' : '#ffffff',
+      color: colors.buttonText,
       letterSpacing: 0.3,
     },
 
