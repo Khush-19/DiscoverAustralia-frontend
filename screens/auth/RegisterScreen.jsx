@@ -34,22 +34,22 @@ function validate(displayName, email, password, confirmPassword) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function RegisterScreen({ navigation }) {
-  const { signUp }       = useAuth();
-  const { setUserName }  = useUser();
+  const { signUp } = useAuth();
+  const { setUserName } = useUser();
   const { colors, isDark } = useTheme();
-  const fadeStyle        = useFadeIn(300);
+  const fadeStyle = useFadeIn(300);
 
-  const [displayName,     setDisplayName]     = useState('');
-  const [email,           setEmail]           = useState('');
-  const [password,        setPassword]        = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass,        setShowPass]        = useState(false);
-  const [showConfirm,     setShowConfirm]     = useState(false);
-  const [error,           setError]           = useState('');
-  const [isLoading,       setIsLoading]       = useState(false);
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const emailRef          = useRef(null);
-  const passwordRef       = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
   const confirmPasswordRef = useRef(null);
 
   const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
@@ -75,9 +75,9 @@ export default function RegisterScreen({ navigation }) {
 
   return (
     <AuthWrapper fadeStyle={fadeStyle}>
-      <AuthHeader 
-        title="Create an account" 
-        subtitle="Join our community today" 
+      <AuthHeader
+        title="Create an account"
+        subtitle="Join our community today"
       />
 
       <View style={s.card}>
@@ -163,44 +163,10 @@ export default function RegisterScreen({ navigation }) {
   );
 }
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
+// 用于切换主题
 
 function getStyles(colors, isDark) {
   return StyleSheet.create({
-    gradient:  { flex: 1 },
-    safeArea:  { flex: 1 },
-    flex:      { flex: 1 },
-
-    scrollContent: {
-      flexGrow: 1,
-      justifyContent: 'center',
-      paddingHorizontal: 20,
-      paddingVertical: 32,
-    },
-
-    container: { width: '100%' },
-
-    // Logo
-    logoArea: { alignItems: 'center', marginBottom: 28 },
-    logoIconWrap: {
-      width: 60,
-      height: 60,
-      borderRadius: 18,
-      backgroundColor: isDark ? 'rgba(45,212,191,0.12)' : 'rgba(45,212,191,0.1)',
-      borderWidth: 1,
-      borderColor: 'rgba(45,212,191,0.3)',
-      alignItems: 'center',
-      justifyContent: 'center',
-      marginBottom: 12,
-    },
-    appName: {
-      fontSize: 26,
-      fontWeight: '800',
-      color: colors.text,
-      letterSpacing: -0.5,
-    },
-    tagline: { fontSize: 14, color: colors.textMuted, marginTop: 4 },
-
     // Card
     card: {
       backgroundColor: isDark ? 'rgba(28,31,42,0.9)' : 'rgba(255,255,255,0.95)',
@@ -214,40 +180,6 @@ function getStyles(colors, isDark) {
       shadowRadius: 24,
       elevation: 10,
     },
-    heading:    { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 4 },
-    subheading: { fontSize: 14, color: colors.textMuted, marginBottom: 24 },
-
-    // Inputs
-    inputGroup:  { marginBottom: 14 },
-    label: {
-      fontSize: 13,
-      fontWeight: '600',
-      color: colors.textSecondary,
-      marginBottom: 4,
-    },
-    hint: {
-      fontSize: 12,
-      color: colors.textMuted,
-      marginBottom: 8,
-    },
-    inputRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.04)',
-      borderRadius: 12,
-      borderWidth: 1,
-      borderColor: colors.border,
-      paddingHorizontal: 14,
-      height: 50,
-    },
-    inputRowError: {
-      borderColor: colors.error,
-      backgroundColor: 'rgba(239,68,68,0.05)',
-    },
-    inputIcon:       { marginRight: 10 },
-    input:           { flex: 1, color: colors.text, fontSize: 15 },
-    inputWithToggle: { paddingRight: 8 },
-    eyeBtn:          { padding: 4 },
 
     // Error
     errorBox: {
@@ -261,18 +193,7 @@ function getStyles(colors, isDark) {
     },
     errorText: { color: colors.error, fontSize: 13, fontWeight: '500' },
 
-    // Primary button
-    primaryBtn:          { marginTop: 20, borderRadius: 14, overflow: 'hidden' },
-    primaryBtnDisabled:  { opacity: 0.7 },
-    primaryBtnGradient:  { height: 52, alignItems: 'center', justifyContent: 'center' },
-    primaryBtnText: {
-      fontSize: 16,
-      fontWeight: '700',
-      color: colors.buttonText,
-      letterSpacing: 0.3,
-    },
-
-    // Terms
+    // Terms (Only in Register)
     terms: {
       fontSize: 12,
       color: colors.textMuted,
@@ -283,19 +204,9 @@ function getStyles(colors, isDark) {
     termsLink: { color: colors.primary, fontWeight: '600' },
 
     // Divider
-    divider:     { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
+    divider: { flexDirection: 'row', alignItems: 'center', marginVertical: 20 },
     dividerLine: { flex: 1, height: 1, backgroundColor: colors.border },
     dividerText: { marginHorizontal: 12, color: colors.textMuted, fontSize: 13 },
-
-    // Secondary button
-    secondaryBtn: {
-      height: 52,
-      borderRadius: 14,
-      borderWidth: 1.5,
-      borderColor: colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    secondaryBtnText: { fontSize: 15, fontWeight: '600', color: colors.primary },
   });
 }
+
