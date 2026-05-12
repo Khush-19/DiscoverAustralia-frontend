@@ -42,3 +42,17 @@
 - **`README.md`**: 项目说明文档（本文件）。 持续更新中
 - **`babel.config.js`**: JavaScript 转译配置。已更新
 - **`eslint.config.js`**: 代码规范检查配置。  已更新
+
+
+### 4.核心功能实现列表
+**screen 文件夹:** 用于放置页面文件。
+**context文件夹:** 用于处理全局状态管理。
+**hooks文件夹:** 用于放置自定义 Hook。
+**services文件夹:** 用于处理与后端API的交互。
+**navigation文件夹:** 用于定义应用的页面路由导航。
+
+
+### 5.LoginScreen(代码实现)
+LoginScreen.jsx 是应用中的登录页面组件。
+
+

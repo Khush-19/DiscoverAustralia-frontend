@@ -1,29 +1,29 @@
-import React, { useState, useRef, useMemo } from 'react';
-import axios from 'axios';
+import { useState, useRef, useMemo } from 'react';
+// 导入 React Native 核心组件：View, Text, TextInput, 动画(Animated)等
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, Eye, EyeOff, MapPin } from 'lucide-react-native';
+import { Mail, Lock } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 import useFadeIn from '../../hooks/useFadeIn';
 
-// ─── Validation ───────────────────────────────────────────────────────────────
+// Auth Components
+import AuthWrapper from '../../components/auth/AuthWrapper';
+import AuthHeader from '../../components/auth/AuthHeader';
+import AuthInput from '../../components/auth/AuthInput';
+import AuthButton from '../../components/auth/AuthButton';
 
+// ==================================================================
+
+// Email正则校验
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// 验证函数
 function validate(email, password) {
   if (!email.trim()) return 'Email is required.';
   if (!EMAIL_REGEX.test(email)) return 'Please enter a valid email address.';
@@ -32,7 +32,7 @@ function validate(email, password) {
   return null;
 }
 
-// ─── Screen ───────────────────────────────────────────────────────────────────
+// ==================================================================
 
 export default function LoginScreen({ navigation }) {
   const { signIn } = useAuth();
@@ -69,143 +69,73 @@ export default function LoginScreen({ navigation }) {
   }
 
   return (
-    <LinearGradient
-      colors={colors.authGradient}
-      style={s.gradient}
-    >
-      <SafeAreaView style={s.safeArea}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={s.flex}
+    <AuthWrapper fadeStyle={fadeStyle}>
+      <AuthHeader 
+        title="Welcome back" 
+        subtitle="Sign in to continue exploring" 
+      />
+
+      <View style={s.card}>
+        <AuthInput
+          label="Email"
+          icon={Mail}
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={v => { setEmail(v); setError(''); }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
+
+        <AuthInput
+          ref={passwordRef}
+          label="Password"
+          icon={Lock}
+          placeholder="Min. 6 characters"
+          value={password}
+          onChangeText={v => { setPassword(v); setError(''); }}
+          secureTextEntry
+          showPasswordToggle
+          isPasswordVisible={showPass}
+          onTogglePassword={() => setShowPass(p => !p)}
+          returnKeyType="done"
+          onSubmitEditing={handleLogin}
+        />
+
+        <TouchableOpacity
+          style={s.forgotWrap}
+          onPress={() => { /* TODO: ForgotPasswordScreen */ }}
         >
-          <ScrollView
-            contentContainerStyle={s.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Animated.View style={[s.container, fadeStyle]}>
+          <Text style={s.forgotText}>Forgot password?</Text>
+        </TouchableOpacity>
 
-              {/* ── Logo ──────────────────────────────────────────────── */}
-              <View style={s.logoArea}>
-                <View style={s.logoIconWrap}>
-                  <MapPin size={30} color={colors.primary} strokeWidth={2.5} />
-                </View>
-                <Text style={s.appName}>Discover Australia</Text>
-                <Text style={s.tagline}>Your community. Your adventure.</Text>
-              </View>
+        {!!error && (
+          <View style={s.errorBox}>
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        )}
 
-              {/* ── Card ──────────────────────────────────────────────── */}
-              <View style={s.card}>
-                <Text style={s.heading}>Welcome back</Text>
-                <Text style={s.subheading}>Sign in to continue exploring</Text>
+        <AuthButton
+          title="Log In"
+          isLoading={isLoading}
+          onPress={handleLogin}
+          style={{ marginTop: 10 }}
+        />
 
-                {/* Email */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Email</Text>
-                  <View style={s.inputRow}>
-                    <Mail size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      style={s.input}
-                      placeholder="you@example.com"
-                      placeholderTextColor={colors.textMuted}
-                      value={email}
-                      onChangeText={v => { setEmail(v); setError(''); }}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      onSubmitEditing={() => passwordRef.current?.focus()}
-                    />
-                  </View>
-                </View>
+        <View style={s.divider}>
+          <View style={s.dividerLine} />
+          <Text style={s.dividerText}>or</Text>
+          <View style={s.dividerLine} />
+        </View>
 
-                {/* Password */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Password</Text>
-                  <View style={s.inputRow}>
-                    <Lock size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      ref={passwordRef}
-                      style={[s.input, s.inputWithToggle]}
-                      placeholder="Min. 6 characters"
-                      placeholderTextColor={colors.textMuted}
-                      value={password}
-                      onChangeText={v => { setPassword(v); setError(''); }}
-                      secureTextEntry={!showPass}
-                      autoCapitalize="none"
-                      returnKeyType="done"
-                      onSubmitEditing={handleLogin}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPass(p => !p)}
-                      style={s.eyeBtn}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      {showPass
-                        ? <EyeOff size={18} color={colors.textMuted} strokeWidth={1.8} />
-                        : <Eye size={18} color={colors.textMuted} strokeWidth={1.8} />
-                      }
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Forgot password */}
-                <TouchableOpacity
-                  style={s.forgotWrap}
-                  onPress={() => { /* TODO: ForgotPasswordScreen */ }}
-                >
-                  <Text style={s.forgotText}>Forgot password?</Text>
-                </TouchableOpacity>
-
-                {/* Inline error */}
-                {!!error && (
-                  <View style={s.errorBox}>
-                    <Text style={s.errorText}>{error}</Text>
-                  </View>
-                )}
-
-                {/* Login button */}
-                <TouchableOpacity
-                  style={[s.primaryBtn, isLoading && s.primaryBtnDisabled]}
-                  onPress={handleLogin}
-                  disabled={isLoading}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={[colors.primary, colors.primaryDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={s.primaryBtnGradient}
-                  >
-                    {isLoading
-                      ? <ActivityIndicator color={colors.buttonText} size="small" />
-                      : <Text style={s.primaryBtnText}>Log In</Text>
-                    }
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Divider */}
-                <View style={s.divider}>
-                  <View style={s.dividerLine} />
-                  <Text style={s.dividerText}>or</Text>
-                  <View style={s.dividerLine} />
-                </View>
-
-                {/* Register link */}
-                <TouchableOpacity
-                  style={s.secondaryBtn}
-                  onPress={() => navigation.navigate('Register')}
-                  activeOpacity={0.75}
-                >
-                  <Text style={s.secondaryBtnText}>Create an account</Text>
-                </TouchableOpacity>
-              </View>
-
-            </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+        <AuthButton
+          variant="secondary"
+          title="Create an account"
+          onPress={() => navigation.navigate('Register')}
+        />
+      </View>
+    </AuthWrapper>
   );
 }
 

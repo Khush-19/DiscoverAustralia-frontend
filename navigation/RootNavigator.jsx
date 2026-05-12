@@ -5,15 +5,15 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-import TabNavigator       from './TabNavigator';
+import TabNavigator from './TabNavigator';
 import LocationDetailScreen from '../screens/LocationDetailScreen';
-import LoginScreen        from '../screens/auth/LoginScreen';
-import RegisterScreen     from '../screens/auth/RegisterScreen';
+import LoginScreen from '../screens/auth/LoginScreen';
+import RegisterScreen from '../screens/auth/RegisterScreen';
 
 const Stack = createNativeStackNavigator();
 
 // ─── Auth stack (unauthenticated) ─────────────────────────────────────────────
-
+// 未登录状态下的导航
 function AuthStack() {
   const { colors } = useTheme();
   return (
@@ -26,14 +26,14 @@ function AuthStack() {
         animationDuration: 260,
       }}
     >
-      <Stack.Screen name="Login"    component={LoginScreen}    />
+      <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} options={{ animation: 'slide_from_right' }} />
     </Stack.Navigator>
   );
 }
 
 // ─── App stack (authenticated) ────────────────────────────────────────────────
-
+// 已经登录状态下的导航
 function AppStack() {
   const { colors } = useTheme();
   return (
@@ -45,7 +45,7 @@ function AppStack() {
         contentStyle: { backgroundColor: colors.background },
       }}
     >
-      <Stack.Screen name="Tabs"           component={TabNavigator}          options={{ animation: 'none' }} />
+      <Stack.Screen name="Tabs" component={TabNavigator} options={{ animation: 'none' }} />
       <Stack.Screen name="LocationDetail" component={LocationDetailScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom', animationDuration: 280 }}
       />

@@ -2,22 +2,19 @@ import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
   StyleSheet,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  ActivityIndicator,
-  Animated,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Mail, Lock, Eye, EyeOff, User, MapPin } from 'lucide-react-native';
+import { Mail, Lock, User } from 'lucide-react-native';
 import { useAuth } from '../../context/AuthContext';
 import { useUser } from '../../context/UserContext';
 import { useTheme } from '../../context/ThemeContext';
 import useFadeIn from '../../hooks/useFadeIn';
+
+// Auth Components
+import AuthWrapper from '../../components/auth/AuthWrapper';
+import AuthHeader from '../../components/auth/AuthHeader';
+import AuthInput from '../../components/auth/AuthInput';
+import AuthButton from '../../components/auth/AuthButton';
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 
@@ -77,197 +74,92 @@ export default function RegisterScreen({ navigation }) {
   function clearError() { setError(''); }
 
   return (
-    <LinearGradient
-      colors={colors.authGradient}
-      style={s.gradient}
-    >
-      <SafeAreaView style={s.safeArea}>
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          style={s.flex}
-        >
-          <ScrollView
-            contentContainerStyle={s.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <Animated.View style={[s.container, fadeStyle]}>
+    <AuthWrapper fadeStyle={fadeStyle}>
+      <AuthHeader 
+        title="Create an account" 
+        subtitle="Join our community today" 
+      />
 
-              {/* ── Logo ──────────────────────────────────────────────── */}
-              <View style={s.logoArea}>
-                <View style={s.logoIconWrap}>
-                  <MapPin size={30} color={colors.primary} strokeWidth={2.5} />
-                </View>
-                <Text style={s.appName}>Discover Australia</Text>
-                <Text style={s.tagline}>Join the community</Text>
-              </View>
+      <View style={s.card}>
+        <AuthInput
+          label="Display Name"
+          icon={User}
+          placeholder="John Doe"
+          value={displayName}
+          onChangeText={v => { setDisplayName(v); clearError(); }}
+          returnKeyType="next"
+          onSubmitEditing={() => emailRef.current?.focus()}
+        />
 
-              {/* ── Card ──────────────────────────────────────────────── */}
-              <View style={s.card}>
-                <Text style={s.heading}>Create account</Text>
-                <Text style={s.subheading}>Start your Australian adventure</Text>
+        <AuthInput
+          ref={emailRef}
+          label="Email"
+          icon={Mail}
+          placeholder="you@example.com"
+          value={email}
+          onChangeText={v => { setEmail(v); clearError(); }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordRef.current?.focus()}
+        />
 
-                {/* Display Name — shown first because it's the most personal */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Display Name</Text>
-                  <Text style={s.hint}>This is how other explorers will see you</Text>
-                  <View style={s.inputRow}>
-                    <User size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      style={s.input}
-                      placeholder="e.g. Maya"
-                      placeholderTextColor={colors.textMuted}
-                      value={displayName}
-                      onChangeText={v => { setDisplayName(v); clearError(); }}
-                      autoCapitalize="words"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      onSubmitEditing={() => emailRef.current?.focus()}
-                    />
-                  </View>
-                </View>
+        <AuthInput
+          ref={passwordRef}
+          label="Password"
+          icon={Lock}
+          placeholder="Min. 6 characters"
+          value={password}
+          onChangeText={v => { setPassword(v); clearError(); }}
+          secureTextEntry
+          showPasswordToggle
+          isPasswordVisible={showPass}
+          onTogglePassword={() => setShowPass(p => !p)}
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+        />
 
-                {/* Email */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Email</Text>
-                  <View style={s.inputRow}>
-                    <Mail size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      ref={emailRef}
-                      style={s.input}
-                      placeholder="you@example.com"
-                      placeholderTextColor={colors.textMuted}
-                      value={email}
-                      onChangeText={v => { setEmail(v); clearError(); }}
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      returnKeyType="next"
-                      onSubmitEditing={() => passwordRef.current?.focus()}
-                    />
-                  </View>
-                </View>
+        <AuthInput
+          ref={confirmPasswordRef}
+          label="Confirm Password"
+          icon={Lock}
+          placeholder="Repeat password"
+          value={confirmPassword}
+          onChangeText={v => { setConfirmPassword(v); clearError(); }}
+          secureTextEntry
+          showPasswordToggle
+          isPasswordVisible={showConfirm}
+          onTogglePassword={() => setShowConfirm(p => !p)}
+          returnKeyType="done"
+          onSubmitEditing={handleRegister}
+        />
 
-                {/* Password */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Password</Text>
-                  <View style={s.inputRow}>
-                    <Lock size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      ref={passwordRef}
-                      style={[s.input, s.inputWithToggle]}
-                      placeholder="Min. 6 characters"
-                      placeholderTextColor={colors.textMuted}
-                      value={password}
-                      onChangeText={v => { setPassword(v); clearError(); }}
-                      secureTextEntry={!showPass}
-                      autoCapitalize="none"
-                      returnKeyType="next"
-                      onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowPass(p => !p)}
-                      style={s.eyeBtn}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      {showPass
-                        ? <EyeOff size={18} color={colors.textMuted} strokeWidth={1.8} />
-                        : <Eye    size={18} color={colors.textMuted} strokeWidth={1.8} />
-                      }
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        {!!error && (
+          <View style={s.errorBox}>
+            <Text style={s.errorText}>{error}</Text>
+          </View>
+        )}
 
-                {/* Confirm Password */}
-                <View style={s.inputGroup}>
-                  <Text style={s.label}>Confirm Password</Text>
-                  <View style={[
-                    s.inputRow,
-                    confirmPassword.length > 0 && password !== confirmPassword && s.inputRowError,
-                  ]}>
-                    <Lock size={18} color={colors.textMuted} strokeWidth={1.8} style={s.inputIcon} />
-                    <TextInput
-                      ref={confirmPasswordRef}
-                      style={[s.input, s.inputWithToggle]}
-                      placeholder="Re-enter your password"
-                      placeholderTextColor={colors.textMuted}
-                      value={confirmPassword}
-                      onChangeText={v => { setConfirmPassword(v); clearError(); }}
-                      secureTextEntry={!showConfirm}
-                      autoCapitalize="none"
-                      returnKeyType="done"
-                      onSubmitEditing={handleRegister}
-                    />
-                    <TouchableOpacity
-                      onPress={() => setShowConfirm(p => !p)}
-                      style={s.eyeBtn}
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    >
-                      {showConfirm
-                        ? <EyeOff size={18} color={colors.textMuted} strokeWidth={1.8} />
-                        : <Eye    size={18} color={colors.textMuted} strokeWidth={1.8} />
-                      }
-                    </TouchableOpacity>
-                  </View>
-                </View>
+        <AuthButton
+          title="Sign Up"
+          isLoading={isLoading}
+          onPress={handleRegister}
+          style={{ marginTop: 10 }}
+        />
 
-                {/* Inline error */}
-                {!!error && (
-                  <View style={s.errorBox}>
-                    <Text style={s.errorText}>{error}</Text>
-                  </View>
-                )}
+        <View style={s.divider}>
+          <View style={s.dividerLine} />
+          <Text style={s.dividerText}>or</Text>
+          <View style={s.dividerLine} />
+        </View>
 
-                {/* Register button */}
-                <TouchableOpacity
-                  style={[s.primaryBtn, isLoading && s.primaryBtnDisabled]}
-                  onPress={handleRegister}
-                  disabled={isLoading}
-                  activeOpacity={0.85}
-                >
-                  <LinearGradient
-                    colors={[colors.primary, colors.primaryDark]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={s.primaryBtnGradient}
-                  >
-                    {isLoading
-                      ? <ActivityIndicator color={colors.buttonText} size="small" />
-                      : <Text style={s.primaryBtnText}>Create Account</Text>
-                    }
-                  </LinearGradient>
-                </TouchableOpacity>
-
-                {/* Terms note */}
-                <Text style={s.terms}>
-                  By creating an account you agree to our{' '}
-                  <Text style={s.termsLink}>Terms of Service</Text>
-                  {' & '}
-                  <Text style={s.termsLink}>Privacy Policy</Text>
-                </Text>
-
-                {/* Divider */}
-                <View style={s.divider}>
-                  <View style={s.dividerLine} />
-                  <Text style={s.dividerText}>or</Text>
-                  <View style={s.dividerLine} />
-                </View>
-
-                {/* Login link */}
-                <TouchableOpacity
-                  style={s.secondaryBtn}
-                  onPress={() => navigation.navigate('Login')}
-                  activeOpacity={0.75}
-                >
-                  <Text style={s.secondaryBtnText}>Already have an account? Log in</Text>
-                </TouchableOpacity>
-
-              </View>
-            </Animated.View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    </LinearGradient>
+        <AuthButton
+          variant="secondary"
+          title="Already have an account? Log in"
+          onPress={() => navigation.navigate('Login')}
+        />
+      </View>
+    </AuthWrapper>
   );
 }
 

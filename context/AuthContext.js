@@ -4,7 +4,7 @@ import { authService } from '../services/authService';
 
 // Keys used in the secure enclave — never stored in AsyncStorage
 const TOKEN_KEY = 'discover_au_jwt';
-const USER_KEY  = 'discover_au_user';
+const USER_KEY = 'discover_au_user';
 
 const AuthContext = createContext(null);
 
@@ -38,9 +38,9 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     async function bootstrapAsync() {
       try {
-        const token    = await SecureStore.getItemAsync(TOKEN_KEY);
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
         const userJson = await SecureStore.getItemAsync(USER_KEY);
-        const user     = userJson ? JSON.parse(userJson) : null;
+        const user = userJson ? JSON.parse(userJson) : null;
         dispatch({ type: 'RESTORE_TOKEN', token, user });
       } catch {
         // Secure store unavailable (e.g., first boot on fresh simulator) —
@@ -95,3 +95,5 @@ export function useAuth() {
   if (!ctx) throw new Error('useAuth must be called inside <AuthProvider>');
   return ctx;
 }
+
+
