@@ -16,7 +16,7 @@
 
 import { View, Text, StyleSheet } from 'react-native';
 import { Gem, KeyRound, Clock, AlertTriangle, Sparkles, Brain } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 
 // ─── Type config ──────────────────────────────────────────────────────────────
 

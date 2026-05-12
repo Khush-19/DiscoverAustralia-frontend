@@ -7,9 +7,9 @@ import {
   fetchWeather,
   syncUserLocationToBackend,
 } from '../services/LocationService';
-import { useUser } from './UserContext';
+import { useUser } from '../hooks/useUser';
 
-const LocationContext = createContext(null);
+export const LocationContext = createContext(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
 // Must be rendered inside <UserProvider> so it can call updateUserLocation().
@@ -109,10 +109,4 @@ export function LocationProvider({ children }) {
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useLocation() {
-  const ctx = useContext(LocationContext);
-  if (!ctx) throw new Error('useLocation must be called inside <LocationProvider>');
-  return ctx;
-}

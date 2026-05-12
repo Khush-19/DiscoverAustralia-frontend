@@ -8,8 +8,8 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
-import { useUser } from '../context/UserContext';
-import { useAuth } from '../context/AuthContext';
+import { useUser } from '../hooks/useUser';
+import { useAuth } from '../hooks/useAuth';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -25,7 +25,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 import { AURA_HISTORY, getTrendPercentage } from '../services/TrendAnalysis';
 import useFadeIn from '../hooks/useFadeIn';
 

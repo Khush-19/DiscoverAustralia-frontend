@@ -29,8 +29,8 @@ import {
   Send,
   Zap,
 } from 'lucide-react-native';
-import { useUser }             from '../context/UserContext';
-import { useTheme }            from '../context/ThemeContext';
+import { useUser } from '../hooks/useUser';
+import { useTheme } from '../hooks/useTheme';
 import { getLocationById, getTopMatch } from '../services/LocationService';
 import { aiService }           from '../services/aiService';
 import { useAuraIntelligence } from '../hooks/useAuraIntelligence';

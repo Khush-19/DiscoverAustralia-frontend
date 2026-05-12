@@ -8,8 +8,8 @@ import {
   StyleSheet,
 } from 'react-native';
 import { MapPin, Navigation, AlertCircle } from 'lucide-react-native';
-import { useLocation } from '../context/LocationContext';
-import { useTheme } from '../context/ThemeContext';
+import { useLocation } from '../hooks/useLocation';
+import { useTheme } from '../hooks/useTheme';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 

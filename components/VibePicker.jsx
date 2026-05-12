@@ -1,6 +1,6 @@
 import { ScrollView, TouchableOpacity, Text, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 
 // ─── Single tile ──────────────────────────────────────────────────────────────
 

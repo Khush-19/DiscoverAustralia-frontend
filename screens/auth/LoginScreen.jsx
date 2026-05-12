@@ -7,9 +7,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Mail, Lock } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
-import { useUser } from '../../context/UserContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
+import { useUser } from '../../hooks/useUser';
+import { useTheme } from '../../hooks/useTheme';
 import useFadeIn from '../../hooks/useFadeIn';
 
 // Auth Components
@@ -48,17 +48,21 @@ export default function LoginScreen({ navigation }) {
   const passwordRef = useRef(null);
 
   const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
-
+  // ==================================================================
+  // async 异步函数，用于处理登录逻辑
   async function handleLogin() {
+    // 1. 表单验证
     const validationError = validate(email.trim(), password);
     if (validationError) { setError(validationError); return; }
-
+    // 2. 清除错误，显示加载状态
     setError('');
     setIsLoading(true);
+    // 3. 调用登录接口
     try {
       const user = await signIn(email.trim().toLowerCase(), password);
-      // Sync displayName into the existing UserContext so all screens
-      // personalise immediately (e.g., HomeScreen greeting).
+      /*  
+      将 displayName（显示名称）同步到现有的 UserContext 中，
+      以便所有屏幕都能立即实现个性化展示（例如 HomeScreen 上的欢迎语）。*/
       setUserName(user.displayName);
     } catch (err) {
       setError(err.message);
@@ -66,7 +70,8 @@ export default function LoginScreen({ navigation }) {
       setIsLoading(false);
     }
   }
-
+  // ==================================================================
+  // 登录界面的UI渲染
   return (
     <AuthWrapper fadeStyle={fadeStyle}>
       <AuthHeader

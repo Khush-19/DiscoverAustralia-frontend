@@ -7,7 +7,8 @@ import { AuthProvider } from './context/AuthContext';
 import { UserProvider } from './context/UserContext';
 import { LocationProvider } from './context/LocationContext';
 import { SquadProvider }    from './context/SquadContext';
-import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { ThemeProvider } from './context/ThemeContext';
+import { useTheme } from './hooks/useTheme';
 
 function AppContent() {
   const { isDark, colors } = useTheme();

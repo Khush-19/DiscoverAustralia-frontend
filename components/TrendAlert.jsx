@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { View, Text, TouchableOpacity, Animated, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { AlertTriangle, X, TrendingDown, Brain } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 import { detectNegativeTrend, ACTIVITY_DROP_PCT } from '../services/TrendAnalysis';
 
 export default function TrendAlert() {

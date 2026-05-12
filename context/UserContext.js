@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback } from 'react';
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
-const UserContext = createContext(null);
+export const UserContext = createContext(null);
 
 export const AURA_MAX = 1000;
 
@@ -73,13 +73,4 @@ export function UserProvider({ children }) {
       {children}
     </UserContext.Provider>
   );
-}
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
-/** Must be called inside <UserProvider>. */
-export function useUser() {
-  const ctx = useContext(UserContext);
-  if (!ctx) throw new Error('useUser must be called inside <UserProvider>');
-  return ctx;
 }

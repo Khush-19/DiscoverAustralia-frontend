@@ -12,9 +12,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, ChevronRight, Flame, Clock, Navigation } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useUser } from '../context/UserContext';
-import { useLocation } from '../context/LocationContext';
+import { useTheme } from '../hooks/useTheme';
+import { useUser } from '../hooks/useUser';
+import { useLocation } from '../hooks/useLocation';
 import { VIBES } from '../constants/vibes';
 import { discoveryService } from '../services/discoveryService';
 import InsightCard from '../components/InsightCard';

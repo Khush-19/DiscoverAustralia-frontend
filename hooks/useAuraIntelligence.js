@@ -19,7 +19,7 @@
  */
 
 import { useMemo } from 'react';
-import { useUser } from '../context/UserContext';
+import { useUser } from './useUser';
 
 // ─── Scoring weights (must sum to 100) ────────────────────────────────────────
 const W_VIBE      = 40; // vibe keyword alignment

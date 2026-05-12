@@ -16,9 +16,9 @@ import {
   Check,
   Users,
 } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useUser }  from '../context/UserContext';
-import { useSquad } from '../context/SquadContext';
+import { useTheme } from '../hooks/useTheme';
+import { useUser } from '../hooks/useUser';
+import { useSquad } from '../hooks/useSquad';
 
 // Static data removed — squads now come from SquadContext (live, proximity-sorted)
 

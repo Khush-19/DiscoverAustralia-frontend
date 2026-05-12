@@ -21,8 +21,8 @@ import {
   TrendingUp,
   MapPin,
 } from 'lucide-react-native';
-import { useUser } from '../context/UserContext';
-import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../hooks/useUser';
+import { useTheme } from '../hooks/useTheme';
 
 const { height } = Dimensions.get('window');
 

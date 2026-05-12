@@ -2,7 +2,7 @@ import React, { createContext, useContext } from 'react';
 import { useColorScheme } from 'react-native';
 import { lightColors, darkColors } from '../constants/theme';
 
-const ThemeContext = createContext({
+export const ThemeContext = createContext({
   colors: darkColors,
   isDark: true,
   colorScheme: 'dark',
@@ -20,4 +20,4 @@ export const ThemeProvider = ({ children }) => {
   );
 };
 
-export const useTheme = () => useContext(ThemeContext);
+

@@ -24,8 +24,8 @@ import {
   Navigation,
   Mic,
 } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
-import { useUser } from '../context/UserContext';
+import { useTheme } from '../hooks/useTheme';
+import { useUser } from '../hooks/useUser';
 import { fetchInsiderTip } from '../services/AuraAPI';
 
 // ─── Static data ─────────────────────────────────────────────────────────────

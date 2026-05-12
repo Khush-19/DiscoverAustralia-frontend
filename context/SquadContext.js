@@ -23,10 +23,10 @@ import React, {
   useCallback,
 } from 'react';
 import { squadService } from '../services/squadService';
-import { useUser }     from './UserContext';
-import { useLocation } from './LocationContext';
+import { useUser } from '../hooks/useUser';
+import { useLocation } from '../hooks/useLocation';
 
-const SquadContext = createContext(null);
+export const SquadContext = createContext(null);
 
 const POLL_INTERVAL_MS = 30_000; // 30 s — fast enough for social proof, cheap on battery
 
@@ -168,10 +168,4 @@ export function SquadProvider({ children }) {
   );
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
 
-export function useSquad() {
-  const ctx = useContext(SquadContext);
-  if (!ctx) throw new Error('useSquad must be called inside <SquadProvider>');
-  return ctx;
-}

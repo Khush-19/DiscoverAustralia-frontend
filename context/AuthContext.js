@@ -6,7 +6,7 @@ import { authService } from '../services/authService';
 const TOKEN_KEY = 'discover_au_jwt';
 const USER_KEY = 'discover_au_user';
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
 
@@ -87,13 +87,3 @@ export function AuthProvider({ children }) {
     </AuthContext.Provider>
   );
 }
-
-// ─── Hook ─────────────────────────────────────────────────────────────────────
-
-export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be called inside <AuthProvider>');
-  return ctx;
-}
-
-

@@ -9,7 +9,7 @@ import ExploreScreen from '../screens/ExploreScreen';
 import VibeScreen    from '../screens/VibeScreen';
 import SquadsScreen  from '../screens/SquadsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 
 const Tab = createBottomTabNavigator();
 

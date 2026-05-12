@@ -13,8 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
-import { useUser } from '../context/UserContext';
-import { useTheme } from '../context/ThemeContext';
+import { useUser } from '../hooks/useUser';
+import { useTheme } from '../hooks/useTheme';
 import {
   X,
   Sparkles,

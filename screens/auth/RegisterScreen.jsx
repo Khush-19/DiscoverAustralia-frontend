@@ -5,9 +5,9 @@ import {
   StyleSheet,
 } from 'react-native';
 import { Mail, Lock, User } from 'lucide-react-native';
-import { useAuth } from '../../context/AuthContext';
-import { useUser } from '../../context/UserContext';
-import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../hooks/useAuth';
+import { useUser } from '../../hooks/useUser';
+import { useTheme } from '../../hooks/useTheme';
 import useFadeIn from '../../hooks/useFadeIn';
 
 // Auth Components

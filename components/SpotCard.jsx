@@ -1,7 +1,7 @@
 import { TouchableOpacity, Text, View, ImageBackground, Linking, Platform, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Star, MapPin, Navigation } from 'lucide-react-native';
-import { useTheme } from '../context/ThemeContext';
+import { useTheme } from '../hooks/useTheme';
 
 // ─── Maps deep-link ───────────────────────────────────────────────────────────
 // iOS  → Apple Maps (maps://) with geo-coords and label
