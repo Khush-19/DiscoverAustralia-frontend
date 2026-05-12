@@ -8,25 +8,25 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Check, MessageCircle, Users } from 'lucide-react-native';
-import { useSquad }  from '../context/SquadContext';
-import { useTheme }  from '../context/ThemeContext';
+import { useSquad } from '../hooks/useSquad';
+import { useTheme } from '../hooks/useTheme';
 
 // ─── Pulsing live dot ─────────────────────────────────────────────────────────
 
 function LiveDot({ color }) {
-  const scale   = useRef(new Animated.Value(1)).current;
+  const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.6)).current;
 
   useEffect(() => {
     const loop = Animated.loop(
       Animated.parallel([
         Animated.sequence([
-          Animated.timing(scale,   { toValue: 2.2, duration: 900, useNativeDriver: true }),
-          Animated.timing(scale,   { toValue: 1,   duration: 0,   useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 2.2, duration: 900, useNativeDriver: true }),
+          Animated.timing(scale, { toValue: 1, duration: 0, useNativeDriver: true }),
         ]),
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 0,   duration: 900, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.6, duration: 0,   useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0, duration: 900, useNativeDriver: true }),
+          Animated.timing(opacity, { toValue: 0.6, duration: 0, useNativeDriver: true }),
         ]),
       ])
     );
@@ -93,7 +93,7 @@ export default function SquadBanner() {
   if (!featured) return null;
 
   const isMySquad = mySquad?.id === featured.id;
-  const extra     = Math.max(0, featured.memberCount - 3);
+  const extra = Math.max(0, featured.memberCount - 3);
 
   function handleChat() {
     // Navigation stub — wire to SquadChat screen when ready
@@ -196,9 +196,9 @@ export default function SquadBanner() {
 
 const styles = StyleSheet.create({
   // Pulsing dot
-  dotWrap:  { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
-  dotRing:  { position: 'absolute', width: 10, height: 10, borderRadius: 5 },
-  dotCore:  { width: 7,  height: 7,  borderRadius: 4 },
+  dotWrap: { width: 12, height: 12, alignItems: 'center', justifyContent: 'center' },
+  dotRing: { position: 'absolute', width: 10, height: 10, borderRadius: 5 },
+  dotCore: { width: 7, height: 7, borderRadius: 4 },
 
   // Avatar row
   avatarRow: { flexDirection: 'row', alignItems: 'center' },
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarInitials:  { fontSize: 9, fontWeight: '800', color: '#fff' },
+  avatarInitials: { fontSize: 9, fontWeight: '800', color: '#fff' },
   avatarExtra: {
     width: 28,
     height: 28,
@@ -287,7 +287,7 @@ function getStyles(colors, isDark) {
       backgroundColor: isDark ? 'rgba(59,130,246,0.14)' : 'rgba(59,130,246,0.08)',
       borderColor: 'rgba(59,130,246,0.25)',
     },
-    statPillTextBlue:  { color: '#60A5FA' },
+    statPillTextBlue: { color: '#60A5FA' },
     statPillAmber: {
       backgroundColor: isDark ? 'rgba(245,158,11,0.14)' : 'rgba(245,158,11,0.08)',
       borderColor: 'rgba(245,158,11,0.25)',
