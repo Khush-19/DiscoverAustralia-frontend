@@ -23,6 +23,7 @@ ios/Pods/
 ios/*.xcworkspace
 
 # environment variables
+*.env
 .env
 .env.local
 .env.development.local
