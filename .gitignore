@@ -13,6 +13,8 @@ dist-ssr/
 web-build/
 
 # native build artifacts
+android/
+ios/
 android/build/
 android/app/build/
 android/.gradle/
