@@ -1,7 +1,3 @@
-# DiscoverAustralia-frontend
-
-这是一个基于 **React Native (Expo)** 和 **Vite (Web)** 的双平台项目。
-
 ## 项目目录与文件说明
 
 本项目分为 **项目核心文件** 和 **自动生成/缓存文件** 两大部分。
