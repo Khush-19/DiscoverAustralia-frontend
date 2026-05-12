@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo } from 'react';
+import axios from 'axios';
 import {
   View,
   Text,
@@ -34,16 +35,16 @@ function validate(email, password) {
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 export default function LoginScreen({ navigation }) {
-  const { signIn }       = useAuth();
-  const { setUserName }  = useUser();
+  const { signIn } = useAuth();
+  const { setUserName } = useUser();
   const { colors, isDark } = useTheme();
-  const fadeStyle        = useFadeIn(300);
+  const fadeStyle = useFadeIn(300);
 
-  const [email,       setEmail]       = useState('');
-  const [password,    setPassword]    = useState('');
-  const [showPass,    setShowPass]    = useState(false);
-  const [error,       setError]       = useState('');
-  const [isLoading,   setIsLoading]   = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const passwordRef = useRef(null);
 
@@ -142,7 +143,7 @@ export default function LoginScreen({ navigation }) {
                     >
                       {showPass
                         ? <EyeOff size={18} color={colors.textMuted} strokeWidth={1.8} />
-                        : <Eye    size={18} color={colors.textMuted} strokeWidth={1.8} />
+                        : <Eye size={18} color={colors.textMuted} strokeWidth={1.8} />
                       }
                     </TouchableOpacity>
                   </View>
@@ -212,9 +213,9 @@ export default function LoginScreen({ navigation }) {
 
 function getStyles(colors, isDark) {
   return StyleSheet.create({
-    gradient:    { flex: 1 },
-    safeArea:    { flex: 1 },
-    flex:        { flex: 1 },
+    gradient: { flex: 1 },
+    safeArea: { flex: 1 },
+    flex: { flex: 1 },
 
     scrollContent: {
       flexGrow: 1,
@@ -264,7 +265,7 @@ function getStyles(colors, isDark) {
       shadowRadius: 24,
       elevation: 10,
     },
-    heading:    { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 4 },
+    heading: { fontSize: 22, fontWeight: '700', color: colors.text, marginBottom: 4 },
     subheading: { fontSize: 14, color: colors.textMuted, marginBottom: 24 },
 
     // Inputs
@@ -285,10 +286,10 @@ function getStyles(colors, isDark) {
       paddingHorizontal: 14,
       height: 50,
     },
-    inputIcon:       { marginRight: 10 },
-    input:           { flex: 1, color: colors.text, fontSize: 15 },
+    inputIcon: { marginRight: 10 },
+    input: { flex: 1, color: colors.text, fontSize: 15 },
     inputWithToggle: { paddingRight: 8 },
-    eyeBtn:          { padding: 4 },
+    eyeBtn: { padding: 4 },
 
     // Forgot
     forgotWrap: { alignSelf: 'flex-end', marginBottom: 4 },
