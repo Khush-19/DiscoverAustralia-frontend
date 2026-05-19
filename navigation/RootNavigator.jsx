@@ -9,6 +9,7 @@ import TabNavigator from './TabNavigator';
 import LocationDetailScreen from '../screens/LocationDetailScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
+import FullMapScreen from '../screens/FullMapScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -49,6 +50,7 @@ function AppStack() {
       <Stack.Screen name="LocationDetail" component={LocationDetailScreen}
         options={{ presentation: 'modal', animation: 'slide_from_bottom', animationDuration: 280 }}
       />
+      <Stack.Screen name="FullMap" component={FullMapScreen} />
     </Stack.Navigator>
   );
 }

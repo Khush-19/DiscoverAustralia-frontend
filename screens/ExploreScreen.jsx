@@ -26,7 +26,10 @@ import {
 } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
+import { useLocation } from '../hooks/useLocation';
 import { fetchInsiderTip } from '../services/AuraAPI';
+import { useNavigation } from '@react-navigation/native';
+import MapView, { Marker } from 'react-native-maps';
 
 // ─── Static data ─────────────────────────────────────────────────────────────
 
@@ -104,51 +107,65 @@ const NEAR_USYD = [
 function MapPreviewCard() {
   const { colors, isDark } = useTheme();
   const s = getStyles(colors, isDark);
+  const navigation = useNavigation();
+  const { coords } = useLocation();
+
+  const lat = coords?.latitude ?? -33.8885;
+  const lon = coords?.longitude ?? 151.1873;
 
   return (
-    <View style={s.mapCard}>
+    <TouchableOpacity 
+      style={s.mapCard}
+      activeOpacity={0.9}
+      onPress={() => navigation.navigate('FullMap')}
+    >
+      <MapView
+        style={StyleSheet.absoluteFillObject}
+        initialRegion={{
+          latitude: lat,
+          longitude: lon,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        }}
+        region={{
+          latitude: lat,
+          longitude: lon,
+          latitudeDelta: 0.015,
+          longitudeDelta: 0.015,
+        }}
+        scrollEnabled={false}
+        zoomEnabled={false}
+        pitchEnabled={false}
+        rotateEnabled={false}
+        showsCompass={false}
+        userInterfaceStyle={isDark ? 'dark' : 'light'}
+      >
+        <Marker
+          coordinate={{ latitude: lat, longitude: lon }}
+        >
+          <View style={s.miniMapUserContainer}>
+            <View style={s.miniMapUserPin} />
+          </View>
+        </Marker>
+      </MapView>
+
       <LinearGradient
-        colors={isDark ? ['#1A2B28', '#14221F', '#0E1715'] : ['#DDF0EC', '#CCE9E3', '#B8E2DA']}
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={[s.mapPark, { top: '12%', left: '56%', width: '28%', height: '38%' }]} />
-      <View style={[s.mapPark, { top: '60%', left: '4%', width: '32%', height: '26%' }]} />
-      <View style={s.mapWater} />
-      <View style={[s.road, s.roadH, { top: '32%' }]} />
-      <View style={[s.road, s.roadH, { top: '58%' }]} />
-      <View style={[s.road, s.roadV, { left: '20%' }]} />
-      <View style={[s.road, s.roadV, { left: '48%' }]} />
-      <View style={[s.road, s.roadV, { left: '74%' }]} />
-      <View style={[s.block, { top: '6%', left: '4%', width: '14%', height: '22%' }]} />
-      <View style={[s.block, { top: '6%', left: '22%', width: '22%', height: '22%' }]} />
-      <View style={[s.block, { top: '40%', left: '22%', width: '22%', height: '14%' }]} />
-      <View style={[s.block, { top: '40%', left: '50%', width: '20%', height: '14%' }]} />
-      <View style={[s.block, { top: '40%', left: '76%', width: '18%', height: '22%' }]} />
-      <View style={[s.block, { top: '66%', left: '38%', width: '26%', height: '15%' }]} />
-      {MAP_DOTS.map((dot, i) => (
-        <View key={i} style={[s.mapDotRing, { top: dot.top, left: dot.left }]}>
-          <View style={[s.mapDotCore, dot.primary ? s.mapDotTeal : s.mapDotAmber]} />
-        </View>
-      ))}
-      <View style={s.usydPin}>
-        <MapPin size={18} color="#EF4444" fill="#EF4444" strokeWidth={0} />
-        <View style={s.usydTag}>
-          <Text style={s.usydTagText}>USYD</Text>
-        </View>
-      </View>
-      <LinearGradient
-        colors={['transparent', isDark ? 'rgba(10,14,18,0.82)' : 'rgba(0,0,0,0.6)']}
+        colors={['transparent', isDark ? 'rgba(10,14,18,0.85)' : 'rgba(0,0,0,0.6)']}
         style={s.mapBarGrad}
       >
         <View style={s.mapBarLeft}>
           <MapPin size={12} color={colors.primary} strokeWidth={2.5} />
-          <Text style={s.mapBarText}>24 places near USYD</Text>
+          <Text style={s.mapBarText}>Places near your location</Text>
         </View>
-        <TouchableOpacity style={s.fullMapBtn} activeOpacity={0.8}>
+        <TouchableOpacity 
+          style={s.fullMapBtn} 
+          activeOpacity={0.8}
+          onPress={() => navigation.navigate('FullMap')}
+        >
           <Text style={s.fullMapBtnText}>Full Map</Text>
         </TouchableOpacity>
       </LinearGradient>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -707,6 +724,22 @@ const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
     paddingVertical: 6,
   },
   fullMapBtnText: { fontSize: 11, color: '#000', fontWeight: '800' },
+  miniMapUserContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(45,212,191,0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miniMapUserPin: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.primary,
+    borderWidth: 1.5,
+    borderColor: '#fff',
+  },
 
   // ── Section wrapper
   section: { marginBottom: 26 },
