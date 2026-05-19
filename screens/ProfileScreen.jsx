@@ -8,8 +8,10 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 import { useUser } from '../hooks/useUser';
 import { useAuth } from '../hooks/useAuth';
+import { authService } from '../services/authService';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -130,9 +132,29 @@ function SettingsRow({ Icon, label, hint, isLast }) {
 
 export default function ProfileScreen() {
   const { userName, auraScore, activeSquads } = useUser();
-  const { signOut, user } = useAuth();
+  const { signOut, user, userToken } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
+  const isFocused = useIsFocused();
+  const [avatarUrl, setAvatarUrl] = React.useState(null);
+
+  React.useEffect(() => {
+    if (isFocused && userToken) {
+      let active = true;
+      authService.getUserAvatar(userToken)
+        .then(data => {
+          if (active && data && data.url) {
+            setAvatarUrl(data.url);
+          }
+        })
+        .catch(err => {
+          console.log('Error fetching avatar:', err);
+        });
+      return () => {
+        active = false;
+      };
+    }
+  }, [isFocused, userToken]);
   const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
   const isUp = trendPct >= 0;
@@ -179,7 +201,7 @@ export default function ProfileScreen() {
                 {/* Avatar with ring */}
                 <View style={s.avatarRing}>
                   <Image
-                    source={{ uri: 'https://i.pravatar.cc/150?img=47' }}
+                    source={{ uri: avatarUrl || 'https://i.pravatar.cc/150?img=47' }}
                     style={s.avatarImg}
                   />
                 </View>

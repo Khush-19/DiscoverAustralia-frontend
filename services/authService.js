@@ -80,9 +80,39 @@ async function realRegister(email, password, displayName) {
   };
 }
 
+async function realGetUserAvatar(token) {
+  const url = `${BASE_URL}/api/core/getUserAvatar`;
+  console.log('=== [DEBUG authService] ===');
+  console.log('Computed Request URL (getUserAvatar):', url);
+  console.log('===========================');
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Authorization': token,
+    },
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to fetch avatar.';
+    try {
+      const data = await res.json();
+      errorMsg = data.message || data.detail || errorMsg;
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMsg);
+  }
+
+  const data = await res.json();
+  return data; // returns { url: "..." }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const authService = {
   login: realLogin,
   register: realRegister,
+  getUserAvatar: realGetUserAvatar,
 };
+

@@ -765,7 +765,7 @@ const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 10,
   },
-  trendingCard: { width: 168, height: 200 },
+  trendingCard: { width: 168, height: 168 },
   trendingImg: { borderRadius: 24 },
   trendingGrad: {
     flex: 1,

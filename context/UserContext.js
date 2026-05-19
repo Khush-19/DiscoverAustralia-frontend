@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,7 @@ export const AURA_MAX = 1000;
 // ─── Provider ─────────────────────────────────────────────────────────────────
 
 export function UserProvider({ children }) {
+  const { user } = useAuth();
   const [userName,        setUserName]        = useState('Maya Olsen');
   const [auraScore,       setAuraScore]       = useState(780);
   const [vibe,            setVibe]            = useState(null);
@@ -19,6 +21,15 @@ export function UserProvider({ children }) {
   });
   // Last GPS fix pushed to the backend — consumed by Squad-Up proximity logic
   const [lastKnownCoords, setLastKnownCoords] = useState(null);
+
+  // Sync userName with AuthContext user displayName
+  useEffect(() => {
+    if (user && user.displayName) {
+      setUserName(user.displayName);
+    } else if (!user) {
+      setUserName('Maya Olsen');
+    }
+  }, [user]);
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
