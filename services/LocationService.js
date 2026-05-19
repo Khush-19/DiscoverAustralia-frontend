@@ -160,13 +160,17 @@ export async function fetchWeather({ latitude, longitude }) {
 // ─── Backend location sync ────────────────────────────────────────────────────
 
 const BASE_URL   = CONFIG.API_URL || 'http://10.0.2.2:8000';
-const MOCK_SYNC  = true;
+const MOCK_SYNC  = false;
 
 /**
  * Push the user's current coordinates to the backend so Squad-Up can find
  * nearby students. Silently no-ops on failure (best-effort telemetry).
  */
-export async function syncUserLocationToBackend(coords, userId = 'current') {
+export async function syncUserLocationToBackend(coords, email) {
+  if (!email) {
+    console.warn('[LocationService] Sync aborted: email is required.');
+    return { success: false };
+  }
   if (MOCK_SYNC) {
     // Simulate a 300 ms round-trip without hitting a real server
     await new Promise(r => setTimeout(r, 300));
@@ -175,14 +179,14 @@ export async function syncUserLocationToBackend(coords, userId = 'current') {
   }
   try {
     const token = await SecureStore.getItemAsync('discover_au_jwt');
-    const res = await fetch(`${BASE_URL}/api/v1/users/location`, {
-      method:  'PATCH',
+    const res = await fetch(`${BASE_URL}/api/core/updateLocation`, {
+      method:  'PUT',
       headers: { 
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       body:    JSON.stringify({
-        user_id:   userId,
+        email:     email,
         latitude:  coords.latitude,
         longitude: coords.longitude,
       }),

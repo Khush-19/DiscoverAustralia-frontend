@@ -8,6 +8,7 @@ import {
   syncUserLocationToBackend,
 } from '../services/LocationService';
 import { useUser } from '../hooks/useUser';
+import { useAuth } from '../hooks/useAuth';
 
 export const LocationContext = createContext(null);
 
@@ -16,6 +17,7 @@ export const LocationContext = createContext(null);
 
 export function LocationProvider({ children }) {
   const { updateUserLocation } = useUser();
+  const { user } = useAuth();
 
   const [coords,           setCoords]           = useState(null);
   const [cityName,         setCityName]         = useState(null);
@@ -66,7 +68,9 @@ export function LocationProvider({ children }) {
 
       // 4. Push coords to backend (Squad-Up proximity logic) and UserContext.
       // Fire-and-forget — we don't await or surface failures to the user.
-      syncUserLocationToBackend(position).catch(() => {});
+      if (user?.email) {
+        syncUserLocationToBackend(position, user.email).catch(() => {});
+      }
       updateUserLocation(position);
 
     } catch (err) {
@@ -74,7 +78,7 @@ export function LocationProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [updateUserLocation]);
+  }, [updateUserLocation, user]);
 
   // Bootstrap on mount: check existing permission silently so we can show
   // the banner state correctly before the user taps anything.
