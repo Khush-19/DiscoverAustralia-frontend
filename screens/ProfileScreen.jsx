@@ -129,8 +129,8 @@ function SettingsRow({ Icon, label, hint, isLast }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
-  const { auraScore, activeSquads } = useUser();
-  const { signOut } = useAuth();
+  const { userName, auraScore, activeSquads } = useUser();
+  const { signOut, user } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
   const auraPct  = auraScore / AURA_MAX;
@@ -187,7 +187,7 @@ export default function ProfileScreen() {
                 {/* Name + badge + edit ─────────────────────────────────── */}
                 <View style={s.profileInfo}>
                   <View style={s.nameRow}>
-                    <Text style={s.profileName}>Maya Olsen ✨</Text>
+                    <Text style={s.profileName}>{userName} ✨</Text>
                     <TouchableOpacity style={s.pencilBtn} activeOpacity={0.7}>
                       <Pencil size={12} color="rgba(255,255,255,0.75)" strokeWidth={2.5} />
                     </TouchableOpacity>
@@ -195,7 +195,7 @@ export default function ProfileScreen() {
 
                   <View style={s.statusBadge}>
                     <MapPin size={10} color="#A7F3D0" strokeWidth={2.5} />
-                    <Text style={s.statusBadgeText}>USYD: UX Design · 3yr Yes!</Text>
+                    <Text style={s.statusBadgeText}>{user?.email || 'Explorer'}</Text>
                   </View>
                 </View>
               </View>

@@ -46,7 +46,7 @@ async function realLogin(email, password) {
     user: {
       id: data.userId,
       email: data.email,
-      displayName: data.email ? data.email.split('@')[0] : 'User',
+      displayName: data.nickName || (data.email ? data.email.split('@')[0] : 'User'),
     }
   };
 }
@@ -75,7 +75,7 @@ async function realRegister(email, password, displayName) {
     user: {
       id: data.userId,
       email: data.email,
-      displayName: displayName || (data.email ? data.email.split('@')[0] : 'User'),
+      displayName: data.nickName || displayName || (data.email ? data.email.split('@')[0] : 'User'),
     }
   };
 }
