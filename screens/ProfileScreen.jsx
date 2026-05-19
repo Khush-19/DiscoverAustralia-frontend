@@ -133,16 +133,16 @@ export default function ProfileScreen() {
   const { signOut, user } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
-  const auraPct  = auraScore / AURA_MAX;
+  const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
-  const isUp     = trendPct >= 0;
+  const isUp = trendPct >= 0;
   const fadeStyle = useFadeIn();
 
   // Squad count updates live whenever the user joins a new squad
   const STATS = [
-    { value: '24',                        label: 'Places'  },
-    { value: String(activeSquads.length), label: 'Squads'  },
-    { value: '12',                        label: 'Actions' },
+    { value: '24', label: 'Places' },
+    { value: String(activeSquads.length), label: 'Squads' },
+    { value: '12', label: 'Actions' },
   ];
 
 

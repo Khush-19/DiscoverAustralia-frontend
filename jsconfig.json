@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "jsx": "react-native"
+    },
+    "exclude": [
+        "node_modules",
+        ".expo",
+        "web-build"
+    ]
+}
