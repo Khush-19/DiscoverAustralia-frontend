@@ -6,7 +6,10 @@
  * iOS Simulator can hit localhost directly; swap BASE_URL as needed.
  */
 
-const BASE_URL = 'http://10.0.2.2:8000';
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
+
+const BASE_URL = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
@@ -29,9 +32,13 @@ export async function fetchInsiderTip(
   const timerId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   try {
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
     const response = await fetch(`${BASE_URL}/api/v1/query`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body: JSON.stringify({
         query,
         user_id: userId,

@@ -17,8 +17,10 @@
  */
 
 import { fetchInsiderTip } from './AuraAPI';
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL  = 'http://10.0.2.2:8000';
+const BASE_URL  = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const MOCK_MODE = true;
 const MOCK_DELAY = 700;
 
@@ -176,7 +178,12 @@ async function mockGetInsiderTips(spotId, category) {
 // ─── Real implementation ──────────────────────────────────────────────────────
 
 async function realGetInsiderTips(spotId) {
-  const res  = await fetch(`${BASE_URL}/api/v1/tips/${spotId}`);
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  const res  = await fetch(`${BASE_URL}/api/v1/tips/${spotId}`, {
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail ?? 'Failed to load tips');
   return data.tips;

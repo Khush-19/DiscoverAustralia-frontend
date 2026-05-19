@@ -66,6 +66,8 @@ export function getLocationById(id) {
 // ─── GPS & Geocoding ──────────────────────────────────────────────────────────
 
 import * as ExpoLocation from 'expo-location';
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
 
 /**
  * Request foreground location permission.
@@ -157,7 +159,7 @@ export async function fetchWeather({ latitude, longitude }) {
 
 // ─── Backend location sync ────────────────────────────────────────────────────
 
-const BASE_URL   = 'http://10.0.2.2:8000';
+const BASE_URL   = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const MOCK_SYNC  = true;
 
 /**
@@ -172,9 +174,13 @@ export async function syncUserLocationToBackend(coords, userId = 'current') {
     return { success: true };
   }
   try {
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
     const res = await fetch(`${BASE_URL}/api/v1/users/location`, {
       method:  'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
       body:    JSON.stringify({
         user_id:   userId,
         latitude:  coords.latitude,

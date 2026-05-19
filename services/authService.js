@@ -10,28 +10,74 @@
  *   reject  → Error with a human-readable .message for the UI to display
  */
 
+import CONFIG from '../constants/config';
+
+const BASE_URL = CONFIG.API_URL;
+
 // ─── Real implementations (used when MOCK_MODE = false) ───────────────────────
 
 async function realLogin(email, password) {
-  const res = await fetch(`${BASE_URL}/api/v1/auth/login`, {
+  const url = `${BASE_URL}/api/core/login`;
+  console.log('=== [DEBUG authService] ===');
+  console.log('Computed Request URL:', url);
+  console.log('CONFIG.API_URL value:', CONFIG.API_URL);
+  console.log('===========================');
+
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password }),
   });
+  
+  if (!res.ok) {
+    let errorMsg = 'Login failed. Please try again.';
+    try {
+      const data = await res.json();
+      errorMsg = data.message || data.detail || errorMsg;
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMsg);
+  }
+
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail ?? 'Login failed. Please try again.');
-  return { token: data.access_token, user: data.user };
+  return {
+    token: data.token,
+    user: {
+      id: data.userId,
+      email: data.email,
+      displayName: data.email ? data.email.split('@')[0] : 'User',
+    }
+  };
 }
 
 async function realRegister(email, password, displayName) {
-  const res = await fetch(`${BASE_URL}/api/v1/auth/register`, {
+  const res = await fetch(`${BASE_URL}/api/core/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ email, password, display_name: displayName }),
   });
+  
+  if (!res.ok) {
+    let errorMsg = 'Registration failed. Please try again.';
+    try {
+      const data = await res.json();
+      errorMsg = data.message || data.detail || errorMsg;
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMsg);
+  }
+
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail ?? 'Registration failed. Please try again.');
-  return { token: data.access_token, user: data.user };
+  return {
+    token: data.token,
+    user: {
+      id: data.userId,
+      email: data.email,
+      displayName: displayName || (data.email ? data.email.split('@')[0] : 'User'),
+    }
+  };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────

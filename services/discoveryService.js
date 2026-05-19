@@ -9,8 +9,10 @@
  *   { id, name, address, rating, distanceKm, imageURL,
  *     isFree, badge, badgeColor, category, coords }
  */
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL  = 'http://10.0.2.2:8000';
+const BASE_URL  = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const MOCK_MODE = true;
 const MOCK_DELAY = 800; // ms — realistic network feel
 
@@ -395,7 +397,12 @@ async function realGetSpotsByVibe(vibeId, coords) {
     longitude: coords?.longitude ?? 151.2093,
     radius_km: 10,
   });
-  const res  = await fetch(`${BASE_URL}/api/v1/spots?${params}`);
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  const res  = await fetch(`${BASE_URL}/api/v1/spots?${params}`, {
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail ?? 'Failed to load spots');
   return data.spots.map(s => ({

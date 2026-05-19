@@ -12,7 +12,10 @@
  * Flip MOCK_MODE = false and wire BASE_URL to swap in your live backend.
  */
 
-const BASE_URL  = 'http://10.0.2.2:8000';
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
+
+const BASE_URL  = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const MOCK_MODE = true;
 const MOCK_DELAY = 600;
 
@@ -181,16 +184,25 @@ async function realFetchNearbySquads(coords) {
     longitude: coords?.longitude ?? 151.2093,
     radius_km: 15,
   });
-  const res  = await fetch(`${BASE_URL}/api/v1/squads/nearby?${params}`);
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  const res  = await fetch(`${BASE_URL}/api/v1/squads/nearby?${params}`, {
+    headers: {
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    }
+  });
   const data = await res.json();
   if (!res.ok) throw new Error(data.detail ?? 'Failed to load squads');
   return data.squads;
 }
 
 async function realJoinSquad(squadId, userId) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
   const res  = await fetch(`${BASE_URL}/api/v1/squads/${squadId}/join`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
     body:    JSON.stringify({ user_id: userId }),
   });
   const data = await res.json();
@@ -199,9 +211,13 @@ async function realJoinSquad(squadId, userId) {
 }
 
 async function realCreateSquad(spotId, userId) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
   const res  = await fetch(`${BASE_URL}/api/v1/squads`, {
     method:  'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
     body:    JSON.stringify({ spot_id: spotId, creator_id: userId }),
   });
   const data = await res.json();
