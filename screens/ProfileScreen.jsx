@@ -231,8 +231,12 @@ export default function ProfileScreen() {
           if (!Array.isArray(data)) return;
           const unread = data.filter(msg => !msg.read && !msg.remind && !seenIdsRef.current.has(msg.id.timestamp));
           if (unread.length > 0) {
-            // Show one system notification per fetch batch
-            presentSystemNotification(unread[0].title, unread[0].content);
+            // Show system notification for each unread message
+            unread.forEach((msg, index) => {
+              setTimeout(() => {
+                presentSystemNotification(msg.title, msg.content);
+              }, index * 1000); // Stagger notifications by 1 second
+            });
             unread.forEach(m => seenIdsRef.current.add(m.id.timestamp));
           }
         })
