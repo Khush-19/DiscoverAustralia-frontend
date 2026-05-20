@@ -10,6 +10,7 @@ import LocationDetailScreen from '../screens/LocationDetailScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import FullMapScreen from '../screens/FullMapScreen';
+import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -51,6 +52,9 @@ function AppStack() {
         options={{ presentation: 'modal', animation: 'slide_from_bottom', animationDuration: 280 }}
       />
       <Stack.Screen name="FullMap" component={FullMapScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
     </Stack.Navigator>
   );
 }

@@ -8,10 +8,13 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
+import { useIsFocused, useNavigation } from '@react-navigation/native';
+import * as SecureStore from 'expo-secure-store';
 import { useUser } from '../hooks/useUser';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
+import CONFIG from '../constants/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -30,6 +33,14 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { AURA_HISTORY, getTrendPercentage } from '../services/TrendAnalysis';
 import useFadeIn from '../hooks/useFadeIn';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -102,7 +113,7 @@ const sp = StyleSheet.create({
   bar: { width: 5, borderRadius: 3 },
 });
 
-function SettingsRow({ Icon, label, hint, isLast }) {
+function SettingsRow({ Icon, label, hint, isLast, onPress }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
 
@@ -110,6 +121,7 @@ function SettingsRow({ Icon, label, hint, isLast }) {
     <TouchableOpacity
       style={[s.settingRow, isLast && s.settingRowLast]}
       activeOpacity={0.65}
+      onPress={onPress}
     >
       {/* Left — icon + label */}
       <View style={s.settingLeft}>
@@ -131,12 +143,61 @@ function SettingsRow({ Icon, label, hint, isLast }) {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ProfileScreen() {
+  const navigation = useNavigation();
   const { userName, auraScore, activeSquads } = useUser();
   const { signOut, user, userToken } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
   const isFocused = useIsFocused();
   const [avatarUrl, setAvatarUrl] = React.useState(null);
+  const [isNotificationEnabled, setIsNotificationEnabled] = React.useState(true);
+  const [notificationPermission, setNotificationPermission] = React.useState(false);
+  const seenIdsRef = React.useRef(new Set());
+
+  const ensureNotificationPermission = React.useCallback(async () => {
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+      setNotificationPermission(finalStatus === 'granted');
+    } catch (err) {
+      console.warn('Notification permission request failed:', err);
+      setNotificationPermission(false);
+    }
+  }, []);
+
+  const presentSystemNotification = React.useCallback(async (title, body) => {
+    if (!notificationPermission) return;
+    try {
+      await Notifications.scheduleNotificationAsync({
+        content: { title, body },
+        trigger: null,
+      });
+    } catch (err) {
+      console.warn('Failed to present notification:', err);
+    }
+  }, [notificationPermission]);
+
+  React.useEffect(() => {
+    ensureNotificationPermission();
+  }, [ensureNotificationPermission]);
+
+  React.useEffect(() => {
+    if (isFocused) {
+      SecureStore.getItemAsync('discover_au_notification_enabled')
+        .then(val => {
+          if (val !== null) {
+            setIsNotificationEnabled(val === 'true');
+          } else {
+            setIsNotificationEnabled(true);
+          }
+        })
+        .catch(err => console.log('Error reading notifications settings:', err));
+    }
+  }, [isFocused]);
 
   React.useEffect(() => {
     if (isFocused && userToken) {
@@ -155,6 +216,36 @@ export default function ProfileScreen() {
       };
     }
   }, [isFocused, userToken]);
+
+  // ─── Poll unread messages every 15 seconds ───
+  React.useEffect(() => {
+    if (!isNotificationEnabled || !userToken) return;
+    const interval = setInterval(() => {
+      fetch(`${CONFIG.API_URL}/api/core/getUnreadMessages`, {
+        headers: {
+          'Authorization': userToken,
+        },
+      })
+        .then(res => res.json())
+        .then((data) => {
+          if (!Array.isArray(data)) return;
+          const unread = data.filter(msg => !msg.read && !msg.remind && !seenIdsRef.current.has(msg.id.timestamp));
+          if (unread.length > 0) {
+            // Show one system notification per fetch batch
+            presentSystemNotification(unread[0].title, unread[0].content);
+            unread.forEach(m => seenIdsRef.current.add(m.id.timestamp));
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch unread messages:', err);
+          console.log('Error name:', err.name);
+          console.log('Error message:', err.message);
+          console.log('Request URL:', `${CONFIG.API_URL}/api/core/getUnreadMessages`);
+        });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [isNotificationEnabled, userToken, presentSystemNotification]);
+
   const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
   const isUp = trendPct >= 0;
@@ -332,13 +423,27 @@ export default function ProfileScreen() {
           <View style={s.section}>
             <Text style={s.settingsMeta}>SETTINGS</Text>
             <View style={s.settingsList}>
-              {SETTINGS_ITEMS.map((item, i) => (
-                <SettingsRow
-                  key={item.id}
-                  {...item}
-                  isLast={i === SETTINGS_ITEMS.length - 1}
-                />
-              ))}
+              {SETTINGS_ITEMS.map((item, i) => {
+                let dynamicHint = item.hint;
+                if (item.id === '1') {
+                  dynamicHint = isNotificationEnabled ? 'Enabled' : 'Disabled';
+                }
+
+                return (
+                  <SettingsRow
+                    key={item.id}
+                    Icon={item.Icon}
+                    label={item.label}
+                    hint={dynamicHint}
+                    isLast={i === SETTINGS_ITEMS.length - 1}
+                    onPress={() => {
+                      if (item.id === '1') {
+                        navigation.navigate('NotificationSettings');
+                      }
+                    }}
+                  />
+                );
+              })}
             </View>
           </View>
 

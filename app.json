@@ -4,7 +4,7 @@
     "slug": "discover-australia",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./public/favicon.svg",
+    "icon": "./public/favicon.png",
     "userInterfaceStyle": "automatic",
     "splash": {
       "backgroundColor": "#111418"

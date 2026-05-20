@@ -42,3 +42,5 @@ ios/*.xcworkspace
 *.sln
 *.sw?
 Thumbs.db
+
+local.properties
