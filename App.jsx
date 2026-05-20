@@ -9,9 +9,13 @@ import { LocationProvider } from './context/LocationContext';
 import { SquadProvider }    from './context/SquadContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { useTheme } from './hooks/useTheme';
+import { useUnreadMessagePolling } from './hooks/useUnreadMessagePolling';
 
 function AppContent() {
   const { isDark, colors } = useTheme();
+  
+  // Start global unread message polling when app loads
+  useUnreadMessagePolling();
 
   return (
     <NavigationContainer>

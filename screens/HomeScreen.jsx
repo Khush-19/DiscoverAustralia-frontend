@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Star, ChevronRight, Flame, Clock, Navigation } from 'lucide-react-native';
+import { Star, ChevronRight, Flame, Clock, Navigation, Mail } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
 import { useLocation } from '../hooks/useLocation';
@@ -24,6 +24,7 @@ import VibePicker from '../components/VibePicker';
 import SpotCard from '../components/SpotCard';
 import SquadBanner from '../components/SquadBanner';
 import useFadeIn from '../hooks/useFadeIn';
+import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 
 
 // ─── Static data ─────────────────────────────────────────────────────────────
@@ -57,11 +58,12 @@ function SectionHeader({ title, onSeeAll }) {
 
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }) {
   const fadeStyle              = useFadeIn();
   const { colors, isDark }     = useTheme();
   const { userName, updateVibe } = useUser();
   const { coords }             = useLocation();
+  const { unreadCount }        = useUnreadMessageCount(30000); // Poll every 30 seconds
   const s = React.useMemo(() => getStyles(colors), [colors]);
 
   const [selectedVibe,  setSelectedVibe]  = useState(null);
@@ -103,13 +105,21 @@ export default function HomeScreen() {
                 Hey, {userName?.split(' ')[0] ?? 'Explorer'} 👋
               </Text>
             </View>
-            <TouchableOpacity style={s.avatarWrap} activeOpacity={0.85}>
+            <TouchableOpacity 
+              style={s.avatarWrap} 
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('Messages')}
+            >
               <View style={s.avatar}>
-                <Text style={s.avatarInitials}>
-                  {userName ? userName.slice(0, 2).toUpperCase() : 'ME'}
-                </Text>
+                <Mail size={20} color="#000" strokeWidth={2.5} />
               </View>
-              <View style={s.notifDot} />
+              {unreadCount > 0 && (
+                <View style={s.notifBadge}>
+                  <Text style={s.notifBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -274,6 +284,25 @@ const getStyles = (colors) => StyleSheet.create({
     backgroundColor: colors.error,
     borderWidth: 2,
     borderColor: colors.background,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: colors.error,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 2,
+    borderColor: colors.background,
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '800',
   },
 
   // ── Hero card

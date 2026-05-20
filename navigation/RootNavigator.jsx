@@ -11,6 +11,7 @@ import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import FullMapScreen from '../screens/FullMapScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
+import MessagesScreen from '../screens/MessagesScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -53,6 +54,9 @@ function AppStack() {
       />
       <Stack.Screen name="FullMap" component={FullMapScreen} />
       <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="Messages" component={MessagesScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>

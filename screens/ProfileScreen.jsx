@@ -8,13 +8,11 @@ import {
   Animated,
   StyleSheet,
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import * as SecureStore from 'expo-secure-store';
 import { useUser } from '../hooks/useUser';
 import { useAuth } from '../hooks/useAuth';
 import { authService } from '../services/authService';
-import CONFIG from '../constants/config';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -33,14 +31,6 @@ import {
 import { useTheme } from '../hooks/useTheme';
 import { AURA_HISTORY, getTrendPercentage } from '../services/TrendAnalysis';
 import useFadeIn from '../hooks/useFadeIn';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -151,39 +141,6 @@ export default function ProfileScreen() {
   const isFocused = useIsFocused();
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [isNotificationEnabled, setIsNotificationEnabled] = React.useState(true);
-  const [notificationPermission, setNotificationPermission] = React.useState(false);
-  const seenIdsRef = React.useRef(new Set());
-
-  const ensureNotificationPermission = React.useCallback(async () => {
-    try {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      setNotificationPermission(finalStatus === 'granted');
-    } catch (err) {
-      console.warn('Notification permission request failed:', err);
-      setNotificationPermission(false);
-    }
-  }, []);
-
-  const presentSystemNotification = React.useCallback(async (title, body) => {
-    if (!notificationPermission) return;
-    try {
-      await Notifications.scheduleNotificationAsync({
-        content: { title, body },
-        trigger: null,
-      });
-    } catch (err) {
-      console.warn('Failed to present notification:', err);
-    }
-  }, [notificationPermission]);
-
-  React.useEffect(() => {
-    ensureNotificationPermission();
-  }, [ensureNotificationPermission]);
 
   React.useEffect(() => {
     if (isFocused) {
@@ -216,39 +173,6 @@ export default function ProfileScreen() {
       };
     }
   }, [isFocused, userToken]);
-
-  // ─── Poll unread messages every 15 seconds ───
-  React.useEffect(() => {
-    if (!isNotificationEnabled || !userToken) return;
-    const interval = setInterval(() => {
-      fetch(`${CONFIG.API_URL}/api/core/getUnreadMessages`, {
-        headers: {
-          'Authorization': userToken,
-        },
-      })
-        .then(res => res.json())
-        .then((data) => {
-          if (!Array.isArray(data)) return;
-          const unread = data.filter(msg => !msg.read && !msg.remind && !seenIdsRef.current.has(msg.id.timestamp));
-          if (unread.length > 0) {
-            // Show system notification for each unread message
-            unread.forEach((msg, index) => {
-              setTimeout(() => {
-                presentSystemNotification(msg.title, msg.content);
-              }, index * 1000); // Stagger notifications by 1 second
-            });
-            unread.forEach(m => seenIdsRef.current.add(m.id.timestamp));
-          }
-        })
-        .catch(err => {
-          console.error('Failed to fetch unread messages:', err);
-          console.log('Error name:', err.name);
-          console.log('Error message:', err.message);
-          console.log('Request URL:', `${CONFIG.API_URL}/api/core/getUnreadMessages`);
-        });
-    }, 15000);
-    return () => clearInterval(interval);
-  }, [isNotificationEnabled, userToken, presentSystemNotification]);
 
   const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
