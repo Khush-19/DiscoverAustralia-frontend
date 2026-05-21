@@ -5,13 +5,13 @@
  *
  *   1. Vibe alignment    — keyword overlap between the user's active vibe
  *                          searchQuery and the spot's category + tags.
- *   2. Biometric fit     — wearable stats (sleep, steps) matched against
+ *   2. Biometric fit     — wearable stats (steps) matched against
  *                          what the spot demands physically/cognitively.
  *   3. Cost suitability  — 'Bored & Broke' vibe penalises paid spots and
  *                          rewards free ones.
  *
  * The algorithm is intentionally transparent so it can be explained to the
- * user in the UI ("Your Study Break vibe + 6.5h sleep → 94% match").
+ * user in the UI ("Your Study Break vibe + low steps → 94% match").
  *
  * Works with both LocationService shape (aiMatch, tags, costEstimate) and
  * discoveryService shape (isFree, category). Falls back gracefully when fields
@@ -61,13 +61,8 @@ function vibeScore(vibe, spot) {
 
 function biometricScore(wearableStats, spot) {
   if (!wearableStats) return 0.7;
-  const { sleepHours = 7, steps = 7000 } = wearableStats;
+  const { steps = 7000 } = wearableStats;
   const target = spotsTagsString(spot).toLowerCase();
-
-  // Low sleep → prefer quiet, restorative spots
-  const prefersQuiet = target.includes('quiet') || target.includes('library') ||
-                       target.includes('study') || target.includes('garden') ||
-                       target.includes('park');
 
   // Low steps → prefer accessible, low-exertion spots
   const prefersLow   = target.includes('café') || target.includes('cafe') ||
@@ -80,17 +75,13 @@ function biometricScore(wearableStats, spot) {
 
   let score = 0.7; // neutral baseline
 
-  if (sleepHours < 6) {
-    score += prefersQuiet ? 0.25 : (prefersHigh ? -0.3 : 0);
-  } else if (sleepHours < 7) {
-    score += prefersQuiet ? 0.15 : (prefersHigh ? -0.15 : 0);
-  } else {
-    // Well-rested: slight boost for active spots
-    score += prefersHigh ? 0.15 : 0;
-  }
-
   if (steps < 3000) {
-    score += prefersLow ? 0.1 : (prefersHigh ? -0.2 : 0);
+    score += prefersLow ? 0.15 : (prefersHigh ? -0.25 : 0);
+  } else if (steps < 5000) {
+    score += prefersLow ? 0.1 : (prefersHigh ? -0.15 : 0);
+  } else if (steps > 8000) {
+    // Active: slight boost for energetic spots
+    score += prefersHigh ? 0.1 : 0;
   }
 
   return clamp(score, 0, 1);
@@ -134,8 +125,8 @@ function buildReasoning(vibe, wearableStats, costPct, vivePct) {
       : `Partial alignment with your "${vibe.label}" vibe`
     );
   }
-  if (wearableStats?.sleepHours < 7) {
-    parts.push(`low sleep (${wearableStats.sleepHours}h) factored in`);
+  if (wearableStats?.steps < 5000) {
+    parts.push(`low activity (${wearableStats.steps.toLocaleString()} steps) factored in`);
   }
   if (costPct === 1) {
     parts.push('free entry matches your budget');

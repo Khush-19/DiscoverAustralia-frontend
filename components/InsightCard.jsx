@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
-  Moon,
   Activity,
   Brain,
   Zap,
@@ -27,7 +26,6 @@ import { useTheme } from '../hooks/useTheme';
 const { height } = Dimensions.get('window');
 
 // Thresholds used for colouring the stat bars and triggering the alert
-const SLEEP_THRESHOLD = 7;    // hours
 const STEPS_THRESHOLD = 7000; // daily steps goal
 
 // ─── Stat bar (used inside the modal) ────────────────────────────────────────
@@ -125,14 +123,6 @@ function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
             <Text style={s.sheetMeta}>YOUR STATS TODAY</Text>
             <View style={s.statsBlock}>
               <StatBar
-                Icon={Moon}
-                label="Sleep"
-                value={wearableStats.sleepHours}
-                maxValue={8}
-                unit="h"
-                threshold={SLEEP_THRESHOLD}
-              />
-              <StatBar
                 Icon={Activity}
                 label="Steps"
                 value={wearableStats.steps}
@@ -147,15 +137,6 @@ function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
               AURA ENGINE REASONING
             </Text>
             <View style={s.reasonBlock}>
-              <View style={s.reasonRow}>
-                <View style={s.reasonDot} />
-                <Text style={s.reasonText}>
-                  Your sleep ({wearableStats.sleepHours} hrs) falls below the{' '}
-                  <Text style={s.reasonHighlight}>{SLEEP_THRESHOLD} hr threshold</Text>.
-                  Research links low sleep to reduced cognitive performance and
-                  elevated cortisol levels.
-                </Text>
-              </View>
               <View style={s.reasonRow}>
                 <View style={s.reasonDot} />
                 <Text style={s.reasonText}>
@@ -222,7 +203,7 @@ function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
 }
 
 // ─── InsightCard (public export) ──────────────────────────────────────────────
-//   Renders nothing when sleepHours >= SLEEP_THRESHOLD.
+//   Renders nothing when steps >= STEPS_THRESHOLD.
 
 export default function InsightCard() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -231,7 +212,7 @@ export default function InsightCard() {
   const { colors, isDark } = useTheme();
   const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
-  if (!wearableStats || wearableStats.sleepHours >= SLEEP_THRESHOLD) return null;
+  if (!wearableStats || wearableStats.steps >= STEPS_THRESHOLD) return null;
 
   return (
     <>
@@ -251,22 +232,22 @@ export default function InsightCard() {
           end={{ x: 1, y: 1 }}
           style={s.cardGrad}
         >
-          {/* ── Header row: badge + sleep pill ─────────────────────────────── */}
+          {/* ── Header row: badge + steps pill ─────────────────────────────── */}
           <View style={s.cardHeader}>
             <View style={s.alertBadge}>
-              <Moon size={12} color={colors.primary} strokeWidth={2} />
+              <Activity size={12} color={colors.primary} strokeWidth={2} />
               <Text style={s.alertBadgeText}>Aura Alert</Text>
             </View>
             <View style={s.sleepPill}>
               <Text style={s.sleepPillText}>
-                {wearableStats.sleepHours}h sleep
+                {wearableStats.steps.toLocaleString()} steps
               </Text>
             </View>
           </View>
 
           {/* ── Body copy ──────────────────────────────────────────────────── */}
           <Text style={s.cardBody}>
-            Your sleep is low. We recommend the{' '}
+            Your step count is low. We recommend the{' '}
             <Text style={s.cardBodyVibe}>"Study Break"</Text> vibe today to keep
             your Aura Score climbing.
           </Text>

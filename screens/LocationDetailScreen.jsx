@@ -151,8 +151,8 @@ export default function LocationDetailScreen() {
 
   // ── Share ────────────────────────────────────────────────────────────────
   const shareText =
-    `Aura Alert — ${userName} has low sleep (${wearableStats?.sleepHours ?? '–'}h) ` +
-    `and reduced activity today. Looking for a quiet environment to restore focus. ` +
+    `Aura Alert — ${userName} has low activity (${wearableStats?.steps?.toLocaleString() ?? '–'} steps) ` +
+    `today. Looking for a quiet environment to restore focus. ` +
     `Suggested location: ${location?.name} (${location?.address}).`;
 
   const handleShare = () =>
@@ -274,11 +274,6 @@ export default function LocationDetailScreen() {
 
               {/* Wearable stats strip */}
               <View style={s.aiStatsRow}>
-                <View style={s.aiStat}>
-                  <Text style={s.aiStatNum}>{wearableStats?.sleepHours ?? '–'}h</Text>
-                  <Text style={s.aiStatLabel}>Sleep</Text>
-                </View>
-                <View style={s.aiStatDiv} />
                 <View style={s.aiStat}>
                   <Text style={s.aiStatNum}>{wearableStats?.steps?.toLocaleString() ?? '–'}</Text>
                   <Text style={s.aiStatLabel}>Steps</Text>

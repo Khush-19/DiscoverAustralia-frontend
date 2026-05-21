@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { getTodaySteps } from '../services/HealthService';
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
@@ -16,7 +17,6 @@ export function UserProvider({ children }) {
   const [vibe,            setVibe]            = useState(null);
   const [activeSquads,    setActiveSquads]    = useState([]);
   const [wearableStats,   setWearableStats]   = useState({
-    sleepHours: 6.5,
     steps:      4000,
   });
   // Last GPS fix pushed to the backend — consumed by Squad-Up proximity logic
@@ -30,6 +30,33 @@ export function UserProvider({ children }) {
       setUserName('Maya Olsen');
     }
   }, [user]);
+
+  // Fetch step count on mount and periodically
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchSteps = async () => {
+      try {
+        const steps = await getTodaySteps();
+        if (isMounted) {
+          setWearableStats(prev => ({ ...prev, steps }));
+        }
+      } catch (error) {
+        console.warn('Failed to fetch steps:', error);
+      }
+    };
+
+    // Initial fetch
+    fetchSteps();
+
+    // Refresh every 5 minutes
+    const interval = setInterval(fetchSteps, 5 * 60 * 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, []);
 
   // ── Actions ───────────────────────────────────────────────────────────────
 
