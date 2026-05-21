@@ -4,9 +4,9 @@ import { useTheme } from '../hooks/useTheme';
 
 // ─── Single tile ──────────────────────────────────────────────────────────────
 
-function VibeTile({ vibe, isSelected, onPress }) {
+function VibeTile({ vibe, isSelected, onPress, squareMode, hideSubtitle }) {
   const { colors, isDark } = useTheme();
-  const s = getStyles(colors, isDark);
+  const s = getStyles(colors, isDark, squareMode);
 
   return (
     <TouchableOpacity
@@ -29,7 +29,7 @@ function VibeTile({ vibe, isSelected, onPress }) {
 
         <Text style={s.emoji}>{vibe.emoji}</Text>
         <Text style={s.label} numberOfLines={2}>{vibe.label}</Text>
-        <Text style={s.subtitle} numberOfLines={1}>{vibe.subtitle}</Text>
+        {!hideSubtitle && <Text style={s.subtitle} numberOfLines={1}>{vibe.subtitle}</Text>}
       </LinearGradient>
     </TouchableOpacity>
   );
@@ -41,11 +41,13 @@ function VibeTile({ vibe, isSelected, onPress }) {
  * Controlled horizontal vibe selector.
  *
  * Props:
- *   vibes      — array from constants/vibes.js
- *   selectedId — id of the currently selected vibe (or null)
- *   onSelect   — called with the full vibe object when a tile is tapped
+ *   vibes         — array from constants/vibes.js
+ *   selectedId    — id of the currently selected vibe (or null/undefined)
+ *   onSelect      — called with the full vibe object when a tile is tapped
+ *   squareMode    — if true, tiles are square (default: false)
+ *   hideSubtitle  — if true, subtitle text is hidden (default: false)
  */
-export default function VibePicker({ vibes, selectedId, onSelect }) {
+export default function VibePicker({ vibes, selectedId, onSelect, squareMode = false, hideSubtitle = false }) {
   return (
     <ScrollView
       horizontal
@@ -58,6 +60,8 @@ export default function VibePicker({ vibes, selectedId, onSelect }) {
           vibe={vibe}
           isSelected={selectedId === vibe.id}
           onPress={() => onSelect(vibe)}
+          squareMode={squareMode}
+          hideSubtitle={hideSubtitle}
         />
       ))}
     </ScrollView>
@@ -70,7 +74,7 @@ const styles = StyleSheet.create({
   scroll: { paddingHorizontal: 16, gap: 10 },
 });
 
-function getStyles(colors, isDark) {
+function getStyles(colors, isDark, squareMode) {
   return StyleSheet.create({
     tileShell: {
       borderRadius: 20,
@@ -91,12 +95,20 @@ function getStyles(colors, isDark) {
       borderWidth: 2,
       borderColor: '#fff',
     },
-    tile: {
-      width: 132,
-      height: 120,
-      padding: 13,
-      justifyContent: 'flex-end',
-    },
+    tile: squareMode
+      ? {
+          width: 120,
+          height: 120,
+          padding: 10,
+          justifyContent: 'center',
+          alignItems: 'center',
+        }
+      : {
+          width: 132,
+          height: 120,
+          padding: 13,
+          justifyContent: 'flex-end',
+        },
 
     // Selection indicator (top-right ring)
     selectedRing: {
@@ -117,12 +129,13 @@ function getStyles(colors, isDark) {
       borderRadius: 4,
     },
 
-    emoji:    { fontSize: 26, marginBottom: 5 },
+    emoji:    { fontSize: 24, marginBottom: 4 },
     label: {
-      fontSize: 13,
+      fontSize: squareMode ? 12 : 13,
       fontWeight: '800',
       color: '#fff',
-      lineHeight: 17,
+      lineHeight: squareMode ? 15 : 17,
+      textAlign: 'center',
     },
     subtitle: {
       fontSize: 10,

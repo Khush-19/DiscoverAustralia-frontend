@@ -15,6 +15,7 @@ import MessagesScreen from '../screens/MessagesScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
 import PersonalizedRecommendationSettingsScreen from '../screens/PersonalizedRecommendationSettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
+import VibeDetailScreen from '../screens/VibeDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -69,6 +70,9 @@ function AppStack() {
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
       <Stack.Screen name="Help" component={HelpScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="VibeDetail" component={VibeDetailScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>

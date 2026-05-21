@@ -20,7 +20,6 @@ import {
   ShieldCheck,
   HelpCircle,
   Settings,
-  Code2,
   LogOut,
   ChevronRight,
   MapPin,
@@ -199,11 +198,8 @@ export default function ProfileScreen() {
           <View style={s.pageHeader}>
             <View>
               <Text style={s.pageMeta}>PROFILE</Text>
-              <Text style={s.pageTitle}>My Account</Text>
+              <Text style={s.pageTitle}>{userName}'s Account</Text>
             </View>
-            <TouchableOpacity style={s.headerIconBtn} activeOpacity={0.75}>
-              <Code2 size={18} color={colors.primary} strokeWidth={2} />
-            </TouchableOpacity>
           </View>
 
           {/* ── Profile card ─────────────────────────────────────────────────── */}
@@ -421,16 +417,6 @@ const getStyles = (colors) => StyleSheet.create({
     fontWeight: '800',
     color: colors.text,
     letterSpacing: -0.4,
-  },
-  headerIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   // ── Profile card

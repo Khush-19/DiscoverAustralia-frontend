@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ImageBackground,
   Animated,
-  ActivityIndicator,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,9 +15,6 @@ import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
 import { useLocation } from '../hooks/useLocation';
 import { VIBES } from '../constants/vibes';
-import { discoveryService } from '../services/discoveryService';
-import InsightCard from '../components/InsightCard';
-import TrendAlert from '../components/TrendAlert';
 import LocationBanner from '../components/LocationBanner';
 import VibePicker from '../components/VibePicker';
 import SpotCard from '../components/SpotCard';
@@ -33,7 +29,6 @@ const QUICK_ACTIONS = [
   { id: '1', label: 'Free Today',   emoji: '💸' },
   { id: '2', label: 'Join a Squad', emoji: '👥' },
   { id: '3', label: 'Near Me',      emoji: '📍' },
-  { id: '4', label: 'Beach Day',    emoji: '🏖️' },
 ];
 
 
@@ -66,25 +61,9 @@ export default function HomeScreen({ navigation }) {
   const { unreadCount }        = useUnreadMessageCount(30000); // Poll every 30 seconds
   const s = React.useMemo(() => getStyles(colors), [colors]);
 
-  const [selectedVibe,  setSelectedVibe]  = useState(null);
-  const [spots,         setSpots]         = useState([]);
-  const [spotsLoading,  setSpotsLoading]  = useState(false);
-
-  // Fetch spots whenever the selected vibe or user's coords change
-  useEffect(() => {
-    if (!selectedVibe) return;
-    let cancelled = false;
-    setSpotsLoading(true);
-    discoveryService.getSpotsByVibe(selectedVibe.id, coords)
-      .then(data  => { if (!cancelled) setSpots(data); })
-      .catch(()   => {})
-      .finally(() => { if (!cancelled) setSpotsLoading(false); });
-    return () => { cancelled = true; };
-  }, [selectedVibe?.id, coords]);
-
   function handleVibeSelect(vibe) {
-    setSelectedVibe(vibe);
     updateVibe(vibe); // sync to UserContext for Aura engine
+    navigation.navigate('VibeDetail', { vibe });
   }
 
   return (
@@ -122,12 +101,6 @@ export default function HomeScreen({ navigation }) {
               )}
             </TouchableOpacity>
           </View>
-
-          {/* ── Early Risk Warning (shown when 3-day negative trend detected) ── */}
-          <TrendAlert />
-
-          {/* ── Predictive Insight (shown when sleep < 7h) ──────────────────── */}
-          <InsightCard />
 
           {/* ── Discovery Hero Card ─────────────────────────────────────────── */}
           <TouchableOpacity activeOpacity={0.9} style={s.heroShell}>
@@ -181,55 +154,31 @@ export default function HomeScreen({ navigation }) {
           </TouchableOpacity>
 
           {/* ── Quick Actions ───────────────────────────────────────────────── */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.quickScroll}
-            style={s.quickContainer}
-          >
+          <View style={s.quickContainer}>
             {QUICK_ACTIONS.map(a => (
               <TouchableOpacity key={a.id} style={s.quickPill} activeOpacity={0.75}>
                 <Text style={s.quickEmoji}>{a.emoji}</Text>
                 <Text style={s.quickLabel}>{a.label}</Text>
               </TouchableOpacity>
             ))}
-          </ScrollView>
+          </View>
 
           {/* ── Pick Your Vibe ──────────────────────────────────────────────── */}
           <View style={s.section}>
-            <SectionHeader title="Pick Your Vibe" onSeeAll={() => {}} />
+            <SectionHeader title="Pick Your Vibe" onSeeAll={() => navigation.navigate('Vibe')} />
             <VibePicker
-              vibes={VIBES}
-              selectedId={selectedVibe?.id ?? null}
+              vibes={VIBES.filter(v => ['bored-broke', 'study-break', 'squad-up'].includes(v.id))}
               onSelect={handleVibeSelect}
+              squareMode={true}
+              hideSubtitle={true}
             />
           </View>
 
-          {/* ── Trending Today / Vibe Spots ─────────────────────────────────── */}
+          {/* ── Trending Squad Today ───────────────────────────────────────── */}
           <View style={s.section}>
-            <SectionHeader
-              title={selectedVibe ? `${selectedVibe.emoji} ${selectedVibe.label}` : '🔥 Trending Today'}
-              onSeeAll={() => {}}
-            />
-            {spotsLoading ? (
-              <View style={s.spotsLoader}>
-                <ActivityIndicator color={colors.primary} />
-              </View>
-            ) : (
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={s.spotsScroll}
-              >
-                {spots.map(spot => (
-                  <SpotCard key={spot.id} spot={spot} />
-                ))}
-              </ScrollView>
-            )}
+            <SectionHeader title="🔥 Trending Squad Today" onSeeAll={() => navigation.navigate('Squads')} />
+            <SquadBanner />
           </View>
-
-          {/* ── Squad-Up Banner — live, data-driven via SquadContext ──────── */}
-          <SquadBanner />
 
           <View style={{ height: 24 }} />
         </ScrollView>
@@ -366,8 +315,14 @@ const getStyles = (colors) => StyleSheet.create({
   goBtnText: { color: '#000', fontSize: 13, fontWeight: '800' },
 
   // ── Quick Actions
-  quickContainer: { marginBottom: 22 },
-  quickScroll: { paddingHorizontal: 16, gap: 8 },
+  quickContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 22,
+  },
   quickPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -394,10 +349,6 @@ const getStyles = (colors) => StyleSheet.create({
   sectionTitle: { fontSize: 17, fontWeight: '800', color: colors.text },
   seeAllRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   seeAllText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
-
-  // ── Spots feed (SpotCard horizontal list)
-  spotsScroll: { paddingHorizontal: 16, gap: 12 },
-  spotsLoader: { height: 158, alignItems: 'center', justifyContent: 'center' },
 
   // Squad-Up banner is now <SquadBanner /> — styles live in SquadBanner.jsx
 });

@@ -18,34 +18,23 @@ import { useTheme } from '../hooks/useTheme';
 import {
   X,
   Sparkles,
-  ArrowRight,
-  Zap,
 } from 'lucide-react-native';
 import { VIBES } from '../constants/vibes';
-
-const SQUAD_AVATARS = [
-  { color: '#EF4444', initials: 'AK' },
-  { color: '#8B5CF6', initials: 'MR' },
-  { color: '#F59E0B', initials: 'JS' },
-];
+import { ReasoningModal } from '../components/InsightCard';
 
 // ─── Vibe Card ───────────────────────────────────────────────────────────────
 
 function VibeCard({ item }) {
   const scale      = useRef(new Animated.Value(1)).current;
   const navigation = useNavigation();
-  const { vibe, updateVibe } = useUser();
   const { colors } = useTheme();
   const s = getStyles(colors);
-
-  const isActive = vibe?.id === item.id;
 
   const onPressIn  = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 40 }).start();
 
   const onPress = () => {
-    updateVibe(item);
-    navigation.navigate('Home');
+    navigation.navigate('VibeDetail', { vibe: item });
   };
 
   return (
@@ -53,7 +42,6 @@ function VibeCard({ item }) {
       style={[
         s.vibeCardShell,
         { transform: [{ scale }] },
-        isActive && s.vibeCardShellActive,
       ]}
     >
       <TouchableOpacity
@@ -80,102 +68,14 @@ function VibeCard({ item }) {
             <Text style={s.vibeSub} numberOfLines={1}>{item.subtitle}</Text>
           </View>
 
-          {/* Right — spots badge  OR  active checkmark */}
-          {isActive ? (
-            <View style={s.activeCheckWrap}>
-              <Text style={s.activeCheckText}>✓</Text>
-            </View>
-          ) : (
-            <View style={[s.spotsBadge, { backgroundColor: item.spotsAlpha }]}>
-              <Text style={s.spotsCount}>{item.spots}</Text>
-              <Text style={s.spotsLabel}>spots</Text>
-            </View>
-          )}
+          {/* Right — spots badge */}
+          <View style={[s.spotsBadge, { backgroundColor: item.spotsAlpha }]}>
+            <Text style={s.spotsCount}>{item.spots}</Text>
+            <Text style={s.spotsLabel}>spots</Text>
+          </View>
         </LinearGradient>
       </TouchableOpacity>
     </Animated.View>
-  );
-}
-
-// ─── Active Squad-Up Card ─────────────────────────────────────────────────────
-
-function SquadUpCard() {
-  const { colors, isDark } = useTheme();
-  const s = getStyles(colors);
-
-  return (
-    <View style={s.squadCard}>
-      {/* Subtle teal glow border */}
-      <View style={s.squadGlowBorder} />
-
-      <LinearGradient
-        colors={isDark ? ['#1C2A28', '#151E1C'] : ['#E6F4F1', '#DDF0EC']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={s.squadGrad}
-      >
-        {/* Header row */}
-        <View style={s.squadHeaderRow}>
-          <View style={s.squadTitleGroup}>
-            <Text style={s.squadTitle}>Squad-Up</Text>
-            <Zap size={14} color={colors.primary} fill={colors.primary} />
-          </View>
-          <View style={s.livePill}>
-            <View style={s.liveDot} />
-            <Text style={s.liveText}>Active</Text>
-          </View>
-        </View>
-
-        {/* Info row — avatars + description */}
-        <View style={s.squadInfoRow}>
-          {/* Overlapping avatar stack */}
-          <View style={s.avatarStack}>
-            {SQUAD_AVATARS.map((a, i) => (
-              <View
-                key={i}
-                style={[
-                  s.squadAvatar,
-                  {
-                    backgroundColor: a.color,
-                    marginLeft: i === 0 ? 0 : -10,
-                    zIndex: SQUAD_AVATARS.length - i,
-                  },
-                ]}
-              >
-                <Text style={s.avatarInitial}>{a.initials}</Text>
-              </View>
-            ))}
-            <View style={s.avatarCountBubble}>
-              <Text style={s.avatarCountText}>+2</Text>
-            </View>
-          </View>
-
-          <Text style={s.squadDesc}>
-            <Text style={s.squadDescBold}>Live · </Text>
-            3 students heading to Bondi
-          </Text>
-        </View>
-
-        {/* CTA buttons */}
-        <View style={s.squadBtnRow}>
-          <TouchableOpacity style={s.joinBtn} activeOpacity={0.85}>
-            <LinearGradient
-              colors={[colors.primary, colors.primaryDark || colors.primary]}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={s.joinBtnGrad}
-            >
-              <Text style={s.joinBtnText}>Join Squad</Text>
-              <ArrowRight size={15} color="#000" strokeWidth={2.8} />
-            </LinearGradient>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={s.laterBtn} activeOpacity={0.6}>
-            <Text style={s.laterText}>Later</Text>
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </View>
   );
 }
 
@@ -223,7 +123,9 @@ function AISearchBar() {
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function VibeScreen() {
+  const [modalVisible, setModalVisible] = useState(false);
   const navigation = useNavigation();
+  const { wearableStats } = useUser();
   const { colors, isDark } = useTheme();
   const s = useMemo(() => getStyles(colors), [colors]);
 
@@ -235,7 +137,7 @@ export default function VibeScreen() {
         {/* Close / X */}
         <TouchableOpacity
           style={s.closeBtn}
-          onPress={() => navigation.navigate('Home')}
+          onPress={() => navigation.goBack()}
           activeOpacity={0.75}
         >
           <X size={18} color={colors.text} strokeWidth={2.5} />
@@ -247,8 +149,14 @@ export default function VibeScreen() {
           <Text style={s.headerSub}>What's calling you today?</Text>
         </View>
 
-        {/* Spacer to balance the X on the left */}
-        <View style={s.closeBtn} />
+        {/* AI Recommendation button */}
+        <TouchableOpacity
+          style={s.recommendBtn}
+          activeOpacity={0.7}
+          onPress={() => setModalVisible(true)}
+        >
+          <Sparkles size={18} color={colors.primary} strokeWidth={2.5} />
+        </TouchableOpacity>
       </View>
 
       {/* ── Scrollable list + sticky search bar ──────────────────────────── */}
@@ -267,15 +175,24 @@ export default function VibeScreen() {
             {VIBES.map(v => <VibeCard key={v.id} item={v} />)}
           </View>
 
-          {/* ── Active Squad-Up card ─────────────────────────────────────── */}
-          <SquadUpCard />
-
           <View style={{ height: 16 }} />
         </ScrollView>
 
         {/* ── AI Search bar — sticks above keyboard ────────────────────── */}
         <AISearchBar />
       </KeyboardAvoidingView>
+
+      {/* ── AI Reasoning Modal ─────────────────────────────────────────── */}
+      <ReasoningModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onFindSpots={() => {
+          setModalVisible(false);
+          // Navigate to a vibe detail or explore screen
+          console.log('Find nearby spots clicked');
+        }}
+        wearableStats={wearableStats}
+      />
     </SafeAreaView>
   );
 }
@@ -293,7 +210,7 @@ const getStyles = (colors = {}) => StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 20,
+    paddingBottom: 24,
   },
   closeBtn: {
     width: 38,
@@ -304,6 +221,21 @@ const getStyles = (colors = {}) => StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  recommendBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: colors.primary + '20',
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
   },
   headerTitles: { alignItems: 'center', gap: 2 },
   headerTitle:  {
@@ -323,6 +255,7 @@ const getStyles = (colors = {}) => StyleSheet.create({
   cardList: {
     paddingHorizontal: 16,
     gap: 12,
+    marginTop: 4,
     marginBottom: 20,
   },
 
@@ -415,165 +348,12 @@ const getStyles = (colors = {}) => StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // ── Squad-Up card
-  squadCard: {
-    marginHorizontal: 16,
-    borderRadius: 24,
-    overflow: 'hidden',
-    // Teal drop-shadow
-    elevation: 10,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-  },
-  squadGlowBorder: {
-    position: 'absolute',
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.35)',
-    zIndex: 1,
-  },
-  squadGrad: {
-    padding: 18,
-    gap: 14,
-  },
-  squadHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  squadTitleGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  squadTitle: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: colors.text,
-  },
-  livePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: 'rgba(16,185,129,0.15)',
-    borderRadius: 10,
-    paddingHorizontal: 9,
-    paddingVertical: 3,
-    borderWidth: 1,
-    borderColor: 'rgba(16,185,129,0.3)',
-  },
-  liveDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 4,
-    backgroundColor: colors.success,
-  },
-  liveText: {
-    fontSize: 11,
-    color: colors.success,
-    fontWeight: '700',
-  },
-  squadInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  avatarStack: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  squadAvatar: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  avatarInitial: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: '#fff',
-  },
-  avatarCountBubble: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.surfaceLight,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: -10,
-    zIndex: 0,
-  },
-  avatarCountText: {
-    fontSize: 9,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  squadDesc: {
-    flex: 1,
-    fontSize: 13,
-    color: colors.textSecondary,
-    fontWeight: '500',
-  },
-  squadDescBold: {
-    color: colors.success,
-    fontWeight: '700',
-  },
-  squadBtnRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  joinBtn: {
-    flex: 1,
-    borderRadius: 18,
-    overflow: 'hidden',
-    elevation: 4,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.45,
-    shadowRadius: 8,
-  },
-  joinBtnGrad: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 13,
-    paddingHorizontal: 20,
-  },
-  joinBtnText: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: '#000000',
-    letterSpacing: 0.2,
-  },
-  laterBtn: {
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  laterText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-
   // ── AI Search bar
   searchWrapper: {
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: Platform.OS === 'ios' ? 12 : 16,
-    gap: 7,
+    gap: 10,
     backgroundColor: colors.background,
     borderTopWidth: 1,
     borderTopColor: colors.border,

@@ -298,6 +298,9 @@ export default function InsightCard() {
   );
 }
 
+// Export ReasoningModal for reuse in other screens
+export { ReasoningModal };
+
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
 const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
