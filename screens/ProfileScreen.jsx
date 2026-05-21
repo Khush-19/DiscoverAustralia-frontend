@@ -367,6 +367,8 @@ export default function ProfileScreen() {
                     onPress={() => {
                       if (item.id === '1') {
                         navigation.navigate('NotificationSettings');
+                      } else if (item.id === '2') {
+                        navigation.navigate('PersonalizedRecommendationSettings');
                       } else if (item.id === '4') {
                         navigation.navigate('ThemeSettings');
                       }

@@ -13,6 +13,7 @@ import FullMapScreen from '../screens/FullMapScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
+import PersonalizedRecommendationSettingsScreen from '../screens/PersonalizedRecommendationSettingsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -61,6 +62,9 @@ function AppStack() {
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
       <Stack.Screen name="ThemeSettings" component={ThemeSettingsScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="PersonalizedRecommendationSettings" component={PersonalizedRecommendationSettingsScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>
