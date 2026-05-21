@@ -17,7 +17,7 @@ import RenderHtml from 'react-native-render-html';
 
 export default function HelpScreen() {
   const navigation = useNavigation();
-  const { colors } = useTheme();
+  const { colors, isDark } = useTheme();
   const [helpData, setHelpData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -93,7 +93,7 @@ export default function HelpScreen() {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.border }]}>
         <TouchableOpacity 
           style={styles.backButton} 
           onPress={() => navigation.goBack()}
@@ -109,17 +109,17 @@ export default function HelpScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={['#0F9688', '#0D7A6E', '#0A5C53']}
+          colors={isDark ? colors.authGradient : ['#F0FAFA', '#E0F2FE', '#ECFDF5']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.helpCard}
         >
           <View style={styles.helpHeader}>
-            <HelpCircle size={32} color="#FFFFFF" />
-            <Text style={styles.helpTitle}>Help Information</Text>
+            <HelpCircle size={32} color={isDark ? '#FFFFFF' : '#0D9488'} />
+            <Text style={[styles.helpTitle, { color: isDark ? '#FFFFFF' : '#0D9488' }]}>Help Information</Text>
           </View>
           
-          <View style={styles.helpBody}>
+          <View style={[styles.helpBody, { backgroundColor: isDark ? colors.surfaceLight : 'rgba(255,255,255,0.7)' }]}>
             {helpData && helpData.help ? (
               renderHelpContent(helpData.help)
             ) : (
@@ -144,7 +144,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.1)',
   },
   backButton: {
     padding: 8,
@@ -177,7 +176,6 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   helpBody: {
-    backgroundColor: 'rgba(255,255,255,0.5)',
     borderRadius: 12,
     padding: 16,
   },
