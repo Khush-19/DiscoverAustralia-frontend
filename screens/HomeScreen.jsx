@@ -163,6 +163,8 @@ export default function HomeScreen({ navigation }) {
                 onPress={() => {
                   if (a.label === 'Join a Squad') {
                     navigation.navigate('Squads');
+                  } else if (a.label === 'Near Me') {
+                    navigation.navigate('FullMap');
                   }
                 }}
               >
