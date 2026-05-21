@@ -7,11 +7,14 @@ import {
   ActivityIndicator,
   StyleSheet,
   RefreshControl,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ArrowLeft, Mail, MailOpen, Bell, AlertTriangle, Info } from 'lucide-react-native';
+import { ArrowLeft, Mail, MailOpen, Bell, AlertTriangle, Info, X } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { getAllMessages } from '../services/messageService';
+import { BlurView } from 'expo-blur';
+import RenderHTML from 'react-native-render-html';
 
 // ─── Color generation algorithm for message kinds ────────────────────────────
 
@@ -90,6 +93,91 @@ function getKindIcon(kind, size = 16) {
   }
 }
 
+// ─── Message Detail Modal Component ──────────────────────────────────────────
+
+function MessageDetailModal({ visible, message, onClose }) {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors);
+
+  if (!message) return null;
+
+  const kindColor = generateKindColor(message.kind);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={onClose}
+    >
+      <View style={s.modalOverlay}>
+        {/* 半透明遮罩层 */}
+        <TouchableOpacity 
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }} 
+          onPress={onClose}
+          activeOpacity={1}
+        />
+        
+        {/* 内容卡片 - 纯灰色背景 */}
+        <View style={[s.modalContainer, { backgroundColor: isDark ? '#1a1a1a' : '#f5f5f5' }]}>
+          {/* Close button */}
+          <TouchableOpacity
+            style={s.closeButton}
+            onPress={onClose}
+            activeOpacity={0.7}
+          >
+            <X size={20} color={colors.text} strokeWidth={2.5} />
+          </TouchableOpacity>
+
+          {/* Content */}
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={s.modalContent}
+          >
+            {/* Header */}
+            <View style={[s.modalHeader, { backgroundColor: message.read ? hexToRgbaWithGray(kindColor.backgroundColor, 0.5) : kindColor.backgroundColor }]}>
+              <Text style={s.modalKind}>{message.kind || 'Message'}</Text>
+              <Text style={s.modalTime}>
+                {new Date(message.createdAt).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })}
+              </Text>
+            </View>
+
+            {/* Title */}
+            <Text style={s.modalTitle}>{message.title}</Text>
+
+            {/* HTML Content */}
+            <View style={s.htmlContainer}>
+              <RenderHTML
+                contentWidth={300}
+                source={{ html: message.content || '<p>No content</p>' }}
+                tagsStyles={{
+                  p: { color: colors.text, fontSize: 15, lineHeight: 24, marginVertical: 8 },
+                  h1: { color: colors.text, fontSize: 22, fontWeight: 'bold', marginVertical: 12 },
+                  h2: { color: colors.text, fontSize: 19, fontWeight: 'bold', marginVertical: 10 },
+                  h3: { color: colors.text, fontSize: 17, fontWeight: 'bold', marginVertical: 8 },
+                  strong: { color: colors.text, fontWeight: 'bold' },
+                  em: { color: colors.text, fontStyle: 'italic' },
+                  a: { color: colors.primary, textDecorationLine: 'underline' },
+                  ul: { color: colors.text, paddingLeft: 20 },
+                  ol: { color: colors.text, paddingLeft: 20 },
+                  li: { color: colors.text, marginVertical: 4 },
+                }}
+                baseStyle={{ color: colors.text }}
+              />
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Message Card Component ──────────────────────────────────────────────────
 
 function MessageCard({ message, onPress }) {
@@ -138,7 +226,7 @@ function MessageCard({ message, onPress }) {
         {/* Header row: kind badge + time */}
         <View style={s.messageHeader}>
           <View style={[s.kindBadge, { backgroundColor: isUnread ? kindColor.backgroundColor : hexToRgbaWithGray(kindColor.backgroundColor, 0.5) }]}>
-            <Text style={[s.kindText, { color: '#FFFFFF' }]}>
+            <Text style={[s.kindText, { color: '#FFFFFF' }]} numberOfLines={1}>
               {message.kind || 'Message'}
             </Text>
           </View>
@@ -146,21 +234,16 @@ function MessageCard({ message, onPress }) {
         </View>
 
         {/* Title */}
-        <Text style={[s.titleText, !isUnread && { color: 'rgba(107, 114, 128, 0.8)' }]} numberOfLines={2}>
+        <Text style={[s.titleText, !isUnread && { color: 'rgba(107, 114, 128, 0.8)' }]} numberOfLines={1}>
           {message.title}
-        </Text>
-
-        {/* Content preview */}
-        <Text style={[s.contentText, !isUnread && { color: 'rgba(107, 114, 128, 0.7)' }]} numberOfLines={2}>
-          {message.content}
         </Text>
 
         {/* Footer: read status */}
         <View style={s.messageFooter}>
           {!isUnread ? (
-            <MailOpen size={14} color="rgba(107, 114, 128, 0.6)" />
+            <MailOpen size={12} color="rgba(107, 114, 128, 0.6)" />
           ) : (
-            <Mail size={14} color={kindColor.backgroundColor} />
+            <Mail size={12} color={kindColor.backgroundColor} />
           )}
         </View>
       </View>
@@ -188,13 +271,15 @@ function EmptyState() {
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function MessagesScreen({ navigation }) {
-  const { colors } = useTheme();
-  const s = getStyles(colors);
+  const { colors, isDark } = useTheme();
+  const s = React.useMemo(() => getStyles(colors, isDark), [colors, isDark]);
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // Fetch messages
   const fetchMessages = async () => {
@@ -227,10 +312,14 @@ export default function MessagesScreen({ navigation }) {
 
   // Handle message press
   const handleMessagePress = (message) => {
-    // TODO: Navigate to message detail screen or show full content
-    console.log('Message pressed:', message);
-    // You can add navigation here later:
-    // navigation.navigate('MessageDetail', { message });
+    setSelectedMessage(message);
+    setModalVisible(true);
+  };
+
+  // Close modal
+  const handleCloseModal = () => {
+    setModalVisible(false);
+    setSelectedMessage(null);
   };
 
   // Count unread messages
@@ -297,13 +386,20 @@ export default function MessagesScreen({ navigation }) {
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
+
+      {/* Message Detail Modal */}
+      <MessageDetailModal
+        visible={modalVisible}
+        message={selectedMessage}
+        onClose={handleCloseModal}
+      />
     </SafeAreaView>
   );
 }
 
 // ─── Styles ──────────────────────────────────────────────────────────────────
 
-const getStyles = (colors) => StyleSheet.create({
+const getStyles = (colors, isDark) => StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
@@ -415,13 +511,14 @@ const getStyles = (colors) => StyleSheet.create({
 
   // Message card
   messageCard: {
-    borderRadius: 16,
-    padding: 14,
+    borderRadius: 12,
+    padding: 10,
     borderWidth: 2,
     position: 'relative',
+    minHeight: 60,
   },
   messageContent: {
-    gap: 8,
+    gap: 6,
   },
   messageHeader: {
     flexDirection: 'row',
@@ -432,44 +529,106 @@ const getStyles = (colors) => StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    maxWidth: 100,
   },
   kindText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
     textTransform: 'capitalize',
   },
   timeText: {
-    fontSize: 11,
+    fontSize: 10,
     color: colors.textMuted,
     fontWeight: '500',
   },
   titleText: {
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '700',
     color: colors.text,
-    lineHeight: 20,
+    lineHeight: 18,
   },
   unreadTitle: {
     color: colors.primary,
   },
   contentText: {
-    fontSize: 13,
+    fontSize: 12,
     color: colors.textSecondary,
-    lineHeight: 18,
+    lineHeight: 16,
   },
   messageFooter: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 4,
+    marginTop: 2,
   },
   emailText: {
     flex: 1,
     fontSize: 11,
     color: colors.textMuted,
     marginRight: 8,
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: isDark ? 'rgba(0, 0, 0, 0.85)' : 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContent: {
+    padding: 20,
+    paddingTop: 50,
+  },
+  modalHeader: {
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  modalKind: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    textTransform: 'capitalize',
+  },
+  modalTime: {
+    fontSize: 11,
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontWeight: '500',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: colors.text,
+    marginBottom: 16,
+    lineHeight: 26,
+  },
+  htmlContainer: {
+    marginTop: 8,
   },
 });

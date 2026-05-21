@@ -244,7 +244,7 @@ export default function ProfileScreen() {
               <View style={s.auraSection}>
                 {/* Label + numeric value */}
                 <View style={s.auraTopRow}>
-                  <Text style={s.auraLabel}>Aura Score</Text>
+                  <Text style={s.auraLabel}>Score</Text>
                   <Text style={s.auraValueText}>
                     <Text style={s.auraHighlight}>{auraScore}</Text>
                     <Text style={s.auraMax}> / {AURA_MAX}</Text>

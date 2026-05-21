@@ -156,7 +156,16 @@ export default function HomeScreen({ navigation }) {
           {/* ── Quick Actions ───────────────────────────────────────────────── */}
           <View style={s.quickContainer}>
             {QUICK_ACTIONS.map(a => (
-              <TouchableOpacity key={a.id} style={s.quickPill} activeOpacity={0.75}>
+              <TouchableOpacity 
+                key={a.id} 
+                style={s.quickPill} 
+                activeOpacity={0.75}
+                onPress={() => {
+                  if (a.label === 'Join a Squad') {
+                    navigation.navigate('Squads');
+                  }
+                }}
+              >
                 <Text style={s.quickEmoji}>{a.emoji}</Text>
                 <Text style={s.quickLabel}>{a.label}</Text>
               </TouchableOpacity>
