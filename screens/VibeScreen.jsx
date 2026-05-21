@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Animated,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +22,7 @@ import {
 } from 'lucide-react-native';
 import { VIBES } from '../constants/vibes';
 import { ReasoningModal } from '../components/InsightCard';
+import { requestHealthPermissions, openHealthConnectSettings } from '../services/HealthService';
 
 // ─── Vibe Card ───────────────────────────────────────────────────────────────
 
@@ -128,6 +130,49 @@ export default function VibeScreen() {
   const { wearableStats } = useUser();
   const { colors, isDark } = useTheme();
   const s = useMemo(() => getStyles(colors), [colors]);
+
+  // Handle Health Connect permission request
+  const handleHealthConnectRequest = async () => {
+    console.log('=== VibeScreen: Requesting Health Connect permissions ===');
+    
+    try {
+      const granted = await requestHealthPermissions();
+      
+      if (granted) {
+        console.log('Health Connect permissions granted!');
+        Alert.alert(
+          '✅ 权限已授予',
+          'Health Connect 步数权限已成功获取！',
+          [{ text: '好的' }]
+        );
+      } else {
+        console.log('Health Connect permissions not granted');
+        Alert.alert(
+          '⚠️ 需要权限',
+          '无法自动打开权限对话框。请手动在 Health Connect 应用中授权。\n\n是否打开 Health Connect 设置页面？',
+          [
+            {
+              text: '取消',
+              style: 'cancel',
+            },
+            {
+              text: '打开设置',
+              onPress: async () => {
+                await openHealthConnectSettings();
+              },
+            },
+          ]
+        );
+      }
+    } catch (error) {
+      console.error('Failed to request Health Connect permissions:', error);
+      Alert.alert(
+        '❌ 错误',
+        '请求 Health Connect 权限时出错：' + error.message,
+        [{ text: '好的' }]
+      );
+    }
+  };
 
   return (
     <SafeAreaView style={s.screen} edges={['top']}>

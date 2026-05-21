@@ -134,48 +134,113 @@ function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
 
             {/* ── AI reasoning ───────────────────────────────────────────── */}
             <Text style={[s.sheetMeta, { marginTop: 22 }]}>
-              AURA ENGINE REASONING
+              REASONING
             </Text>
             <View style={s.reasonBlock}>
-              <View style={s.reasonRow}>
-                <View style={s.reasonDot} />
-                <Text style={s.reasonText}>
-                  Your step count ({wearableStats.steps.toLocaleString()}) suggests
-                  low physical output today. The engine weights low-intensity
-                  activities higher to prevent burnout.
-                </Text>
-              </View>
-              <View style={s.reasonRow}>
-                <View style={[s.reasonDot, { backgroundColor: colors.primary }]} />
-                <Text style={s.reasonText}>
-                  <Text style={s.reasonHighlight}>"Study Break"</Text> activities
-                  (quiet cafés, short library walks, campus gardens) match your
-                  biometric profile — mental restoration without physical overload
-                  keeps your Aura Score climbing.
-                </Text>
-              </View>
+              {wearableStats.steps < STEPS_THRESHOLD ? (
+                <>
+                  <View style={s.reasonRow}>
+                    <View style={s.reasonDot} />
+                    <Text style={s.reasonText}>
+                      Your step count ({wearableStats.steps.toLocaleString()}) suggests
+                      low physical output today. The engine weights low-intensity
+                      activities higher to prevent burnout.
+                    </Text>
+                  </View>
+                  <View style={s.reasonRow}>
+                    <View style={[s.reasonDot, { backgroundColor: colors.primary }]} />
+                    <Text style={s.reasonText}>
+                      <Text style={s.reasonHighlight}>"Study Break"</Text> and{" "}
+                      <Text style={s.reasonHighlight}>"Night Out"</Text> activities match your
+                      biometric profile — mental restoration without physical overload
+                      keeps your Aura Score climbing.
+                    </Text>
+                  </View>
+                </>
+              ) : (
+                <>
+                  <View style={s.reasonRow}>
+                    <View style={s.reasonDot} />
+                    <Text style={s.reasonText}>
+                      Your step count ({wearableStats.steps.toLocaleString()}) shows strong
+                      physical activity today. The engine recommends energy-efficient
+                      options that complement your active lifestyle.
+                    </Text>
+                  </View>
+                  <View style={s.reasonRow}>
+                    <View style={[s.reasonDot, { backgroundColor: colors.primary }]} />
+                    <Text style={s.reasonText}>
+                      <Text style={s.reasonHighlight}>"Bored & Broke"</Text> activities offer
+                      cost-effective ways to maintain momentum without overspending —
+                      perfect for balancing your high-energy day with budget-friendly choices.
+                    </Text>
+                  </View>
+                </>
+              )}
             </View>
 
             {/* ── Recommended vibe card ──────────────────────────────────── */}
             <Text style={[s.sheetMeta, { marginTop: 22 }]}>TOP MATCH</Text>
-            <LinearGradient
-              colors={['#075985', '#0369A1', '#38BDF8']}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={s.recCard}
-            >
-              <View style={s.recIconWrap}>
-                <Text style={s.recEmoji}>📚</Text>
-              </View>
-              <View style={s.recInfo}>
-                <Text style={s.recTitle}>Study Break</Text>
-                <Text style={s.recSub}>+10–25 Aura pts · Low energy</Text>
-              </View>
-              <View style={s.recBadge}>
-                <TrendingUp size={11} color="#fff" strokeWidth={2.5} />
-                <Text style={s.recBadgeText}>Best fit</Text>
-              </View>
-            </LinearGradient>
+            {wearableStats.steps < STEPS_THRESHOLD ? (
+              <>
+                <LinearGradient
+                  colors={['#075985', '#0369A1', '#38BDF8']}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={s.recCard}
+                >
+                  <View style={s.recIconWrap}>
+                    <Text style={s.recEmoji}>📚</Text>
+                  </View>
+                  <View style={s.recInfo}>
+                    <Text style={s.recTitle}>Study Break</Text>
+                    <Text style={s.recSub}>+10–25 Aura pts · Low energy</Text>
+                  </View>
+                  <View style={s.recBadge}>
+                    <TrendingUp size={11} color="#fff" strokeWidth={2.5} />
+                    <Text style={s.recBadgeText}>Best fit</Text>
+                  </View>
+                </LinearGradient>
+                <View style={{ height: 8 }} />
+                <LinearGradient
+                  colors={['#7C3AED', '#8B5CF6', '#A78BFA']}
+                  start={{ x: 0, y: 0.5 }}
+                  end={{ x: 1, y: 0.5 }}
+                  style={s.recCard}
+                >
+                  <View style={s.recIconWrap}>
+                    <Text style={s.recEmoji}>🌙</Text>
+                  </View>
+                  <View style={s.recInfo}>
+                    <Text style={s.recTitle}>Night Out</Text>
+                    <Text style={s.recSub}>+15–30 Aura pts · Social vibes</Text>
+                  </View>
+                  <View style={s.recBadge}>
+                    <TrendingUp size={11} color="#fff" strokeWidth={2.5} />
+                    <Text style={s.recBadgeText}>Recommended</Text>
+                  </View>
+                </LinearGradient>
+              </>
+            ) : (
+              <LinearGradient
+                colors={['#059669', '#10B981', '#34D399']}
+                start={{ x: 0, y: 0.5 }}
+                end={{ x: 1, y: 0.5 }}
+                style={s.recCard}
+              >
+                <View style={s.recIconWrap}>
+                  <Text style={s.recEmoji}>😴</Text>
+                </View>
+                <View style={s.recInfo}>
+                  <Text style={s.recTitle}>Bored & Broke</Text>
+                  <Text style={s.recSub}>Free things to do · Budget-friendly</Text>
+                </View>
+                <View style={s.recBadge}>
+                  <TrendingUp size={11} color="#fff" strokeWidth={2.5} />
+                  <Text style={s.recBadgeText}>Top pick</Text>
+                </View>
+              </LinearGradient>
+            )}
 
             <View style={{ height: 8 }} />
           </ScrollView>
@@ -183,18 +248,11 @@ function ReasoningModal({ visible, onClose, onFindSpots, wearableStats }) {
           {/* CTA */}
           <TouchableOpacity
             style={s.gotItBtn}
-            onPress={onFindSpots}
+            onPress={onClose}
             activeOpacity={0.85}
           >
-            <MapPin size={15} color="#000" strokeWidth={2.5} />
-            <Text style={s.gotItText}>Find Nearby Spots</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={s.dismissBtn}
-            onPress={onClose}
-            activeOpacity={0.7}
-          >
-            <Text style={s.dismissText}>Dismiss</Text>
+            <X size={15} color="#000" strokeWidth={2.5} />
+            <Text style={s.gotItText}>Close</Text>
           </TouchableOpacity>
         </View>
       </View>
