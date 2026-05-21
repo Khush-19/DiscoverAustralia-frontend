@@ -369,6 +369,8 @@ export default function ProfileScreen() {
                         navigation.navigate('NotificationSettings');
                       } else if (item.id === '2') {
                         navigation.navigate('PersonalizedRecommendationSettings');
+                      } else if (item.id === '3') {
+                        navigation.navigate('Help');
                       } else if (item.id === '4') {
                         navigation.navigate('ThemeSettings');
                       }
