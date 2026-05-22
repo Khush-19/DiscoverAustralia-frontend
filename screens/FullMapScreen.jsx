@@ -198,13 +198,15 @@ export default function FullMapScreen({ navigation }) {
               key={activity.id}
               coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
               onPress={() => setSelectedActivity(activity)}
+              tracksViewChanges={true}
+              anchor={{ x: 0.5, y: 0.5 }}
             >
-              <View style={s.activityMarker}>
-                <Image source={{ uri: activity.img }} style={s.markerImage} />
-                <View style={s.markerRatingBadge}>
-                  <Star size={8} color="#F59E0B" fill="#F59E0B" />
-                  <Text style={s.markerRatingText}>{activity.star}</Text>
-                </View>
+              <View style={s.markerWrapper}>
+                <Image 
+                  source={{ uri: activity.img }} 
+                  style={s.markerCircle}
+                  resizeMode="cover"
+                />
               </View>
             </Marker>
           ))}
@@ -381,38 +383,31 @@ function getStyles(colors, isDark) {
       borderRadius: 5,
       backgroundColor: colors.primary,
     },
-    activityMarker: {
-      width: 50,
-      height: 50,
-      borderRadius: 25,
-      overflow: 'hidden',
-      borderWidth: 2,
-      borderColor: '#fff',
-      elevation: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.3,
-      shadowRadius: 4,
+    markerWrapper: {
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    markerCircle: {
+      width: 30,
+      height: 30,
+      borderRadius: 5,
+      borderWidth: 1.5,
+      borderColor: '#ffffff',
       backgroundColor: colors.surfaceLight,
     },
-    markerImage: {
-      width: 46,
-      height: 46,
-      borderRadius: 23,
-    },
-    markerRatingBadge: {
+    markerBadge: {
       position: 'absolute',
-      bottom: 2,
-      right: 2,
-      backgroundColor: 'rgba(0,0,0,0.7)',
+      bottom: -2,
+      right: -2,
+      backgroundColor: 'rgba(0,0,0,0.75)',
       borderRadius: 8,
       paddingHorizontal: 4,
-      paddingVertical: 2,
+      paddingVertical: 1,
       flexDirection: 'row',
       alignItems: 'center',
       gap: 2,
     },
-    markerRatingText: {
+    markerBadgeText: {
       color: '#fff',
       fontSize: 9,
       fontWeight: '700',
