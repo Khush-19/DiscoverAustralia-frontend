@@ -640,6 +640,55 @@ async function searchPlaces(keyword) {
   }
 }
 
+// ─── Get place detail by ID ──────────────────────────────────────────────────
+
+async function getPlaceDetail(placeId) {
+  try {
+    console.log('[getPlaceDetail] Fetching place detail for:', placeId);
+    console.log('[getPlaceDetail] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/explore/place-detail`;
+    console.log('[getPlaceDetail] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[getPlaceDetail] Token exists:', !!token);
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        placeId: placeId
+      })
+    });
+    
+    console.log('[getPlaceDetail] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getPlaceDetail] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getPlaceDetail] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getPlaceDetail] Received data:', data);
+    
+    return data;
+  } catch (error) {
+    console.error('[getPlaceDetail] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const discoveryService = {
@@ -648,4 +697,5 @@ export const discoveryService = {
   getRecommendedPlaces,
   getActivitiesWithin200km,
   searchPlaces,
+  getPlaceDetail,
 };

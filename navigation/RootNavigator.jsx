@@ -18,6 +18,7 @@ import PersonalizedRecommendationSettingsScreen from '../screens/PersonalizedRec
 import HelpScreen from '../screens/HelpScreen';
 import VibeDetailScreen from '../screens/VibeDetailScreen';
 import ActivityDetailScreen from '../screens/ActivityDetailScreen';
+import PlaceDetailScreen from '../screens/PlaceDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -82,6 +83,9 @@ function AppStack() {
       />
       <Stack.Screen name="ActivityLocationMap" component={ActivityLocationMapScreen}
         options={{ animation: 'slide_from_bottom', animationDuration: 280 }}
+      />
+      <Stack.Screen name="PlaceDetail" component={PlaceDetailScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>
   );

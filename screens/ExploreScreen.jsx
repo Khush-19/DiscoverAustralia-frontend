@@ -129,9 +129,16 @@ function MapPreviewCard() {
 function TrendingCard({ item }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
+  const navigation = useNavigation();
+
+  const handlePress = () => {
+    if (item.id) {
+      navigation.navigate('PlaceDetail', { placeId: item.id });
+    }
+  };
 
   return (
-    <TouchableOpacity activeOpacity={0.85} style={s.trendingShell}>
+    <TouchableOpacity activeOpacity={0.85} style={s.trendingShell} onPress={handlePress}>
       <ImageBackground
         source={{ uri: item.image }}
         style={s.trendingCard}
@@ -162,11 +169,19 @@ function TrendingCard({ item }) {
 function NearbyCard({ item, isLast, showDistance = true }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
+  const navigation = useNavigation();
+
+  const handlePress = () => {
+    if (item.id) {
+      navigation.navigate('PlaceDetail', { placeId: item.id });
+    }
+  };
 
   return (
     <TouchableOpacity
       activeOpacity={0.72}
       style={[s.nearbyCard, !isLast && s.nearbyCardBorder]}
+      onPress={handlePress}
     >
       <Image source={{ uri: item.image }} style={s.nearbyThumb} />
       <View style={s.nearbyInfo}>

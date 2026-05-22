@@ -279,13 +279,24 @@ export default function FullMapScreen({ navigation, route }) {
                 </View>
               </View>
             </View>
-            <TouchableOpacity 
-              style={s.clearSelectionBtn} 
-              onPress={() => setSelectedActivity(null)}
-              activeOpacity={0.7}
-            >
-              <Text style={s.clearSelectionText}>Clear Selection</Text>
-            </TouchableOpacity>
+            <View style={s.actionButtonsRow}>
+              <TouchableOpacity 
+                style={s.viewDetailBtn} 
+                onPress={() => {
+                  navigation.navigate('PlaceDetail', { placeId: selectedActivity.id });
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={s.viewDetailBtnText}>View Details</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={s.clearSelectionBtn} 
+                onPress={() => setSelectedActivity(null)}
+                activeOpacity={0.7}
+              >
+                <Text style={s.clearSelectionText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         ) : (
           // Show default location info
@@ -563,16 +574,40 @@ function getStyles(colors, isDark) {
       color: colors.text,
     },
     clearSelectionBtn: {
-      marginTop: 12,
-      paddingVertical: 8,
+      flex: 1,
+      paddingVertical: 12,
       alignItems: 'center',
       backgroundColor: colors.surfaceLight,
-      borderRadius: 8,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     clearSelectionText: {
-      fontSize: 12,
+      fontSize: 13,
       color: colors.textMuted,
-      fontWeight: '600',
+      fontWeight: '700',
+    },
+    actionButtonsRow: {
+      flexDirection: 'row',
+      gap: 10,
+      marginTop: 14,
+    },
+    viewDetailBtn: {
+      flex: 2,
+      paddingVertical: 12,
+      alignItems: 'center',
+      backgroundColor: colors.primary,
+      borderRadius: 12,
+      elevation: 3,
+      shadowColor: colors.primary,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+    },
+    viewDetailBtnText: {
+      fontSize: 14,
+      color: '#000',
+      fontWeight: '800',
     },
     infoSubtitle: {
       fontSize: 12,
