@@ -411,8 +411,120 @@ async function realGetSpotsByVibe(vibeId, coords) {
   }));
 }
 
+// ─── Get nearest places ──────────────────────────────────────────────────────
+
+async function getNearestPlaces(coords) {
+  try {
+    const latitude = coords?.latitude ?? -33.8688;
+    const longitude = coords?.longitude ?? 151.2093;
+    
+    console.log('[getNearestPlaces] Fetching with coords:', { latitude, longitude });
+    console.log('[getNearestPlaces] BASE_URL:', BASE_URL);
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+      latitude: latitude.toString(),
+      longitude: longitude.toString(),
+    });
+    
+    const url = `${BASE_URL}/api/explore/nearest-places?${params.toString()}`;
+    console.log('[getNearestPlaces] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[getNearestPlaces] Token exists:', !!token);
+    
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    
+    console.log('[getNearestPlaces] Response status:', res.status);
+    
+    if (!res.ok) {
+      // Try to get error details from response
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getNearestPlaces] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getNearestPlaces] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getNearestPlaces] Received data:', data);
+    
+    // Transform API response to match the expected format
+    return data.map(place => ({
+      id: place.id,
+      title: place.name,
+      category: place.tag,
+      rating: place.star,
+      distance: `${place.distanceKm.toFixed(2)}km`,
+      badge: place.tag,
+      badgeColor: '#10B981', // Green for "Free" or other tags
+      image: place.img,
+    }));
+  } catch (error) {
+    console.error('[getNearestPlaces] Error:', error);
+    throw error;
+  }
+}
+
+// ─── Get recommended places ──────────────────────────────────────────────────
+
+async function getRecommendedPlaces() {
+  try {
+    console.log('[getRecommendedPlaces] Fetching recommended places...');
+    console.log('[getRecommendedPlaces] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/explore/recommended`;
+    console.log('[getRecommendedPlaces] Request URL:', url);
+    
+    // No token required for this endpoint
+    const res = await fetch(url);
+    
+    console.log('[getRecommendedPlaces] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getRecommendedPlaces] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getRecommendedPlaces] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getRecommendedPlaces] Received data count:', data.length);
+    
+    // Transform API response to match the expected format
+    // Only need: image, tag (badge), rating
+    return data.map(place => ({
+      id: place.id.timestamp || place.id.date || Math.random().toString(),
+      title: place.name,
+      badge: place.tag,
+      badgeColor: '#10B981', // Green for "Free" or other tags
+      rating: place.star,
+      image: place.img,
+    }));
+  } catch (error) {
+    console.error('[getRecommendedPlaces] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const discoveryService = {
   getSpotsByVibe: MOCK_MODE ? mockGetSpotsByVibe : realGetSpotsByVibe,
+  getNearestPlaces,
+  getRecommendedPlaces,
 };

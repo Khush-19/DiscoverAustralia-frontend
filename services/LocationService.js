@@ -150,7 +150,16 @@ export async function reverseGeocode({ latitude, longitude }) {
     throw new Error('No results from native geocoder');
     
   } catch (error) {
-    console.error('[LocationService] Native geocode failed:', error.message);
+    // Check if this is a permission/native module error (common in Expo Go)
+    const isNativeModuleError = error.message?.includes('has been rejected') || 
+                                error.message?.includes('Not authorized') ||
+                                error.message?.includes('Permission');
+    
+    if (isNativeModuleError) {
+      console.log('[LocationService] Native geocoder not available (expected in Expo Go). Using fallback API...');
+    } else {
+      console.error('[LocationService] Native geocode failed:', error.message);
+    }
     
     // Fallback to OpenStreetMap Nominatim API (free, no API key required)
     try {

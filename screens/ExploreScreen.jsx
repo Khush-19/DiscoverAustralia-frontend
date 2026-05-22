@@ -29,6 +29,7 @@ import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
 import { useLocation } from '../hooks/useLocation';
 import { fetchInsiderTip } from '../services/AuraAPI';
+import { discoveryService } from '../services/discoveryService';
 import { useNavigation } from '@react-navigation/native';
 import MapView, { Marker } from 'react-native-maps';
 
@@ -50,58 +51,7 @@ const MAP_DOTS = [
   { top: '50%', left: '82%', primary: true },
 ];
 
-const TRENDING = [
-  {
-    id: '1',
-    title: 'Bondi Beach',
-    badge: 'FREE',
-    badgeColor: '#10B981',
-    rating: 4.9,
-    distance: '4.2km',
-    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=500&q=80',
-  },
-  {
-    id: '2',
-    title: 'Opera House',
-    badge: 'FREE',
-    badgeColor: '#10B981',
-    rating: 4.8,
-    distance: '3.1km',
-    image: 'https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=500&q=80',
-  },
-  {
-    id: '3',
-    title: 'Manly Beach',
-    badge: 'TODAY',
-    badgeColor: '#F59E0B',
-    rating: 4.7,
-    distance: '18km',
-    image: 'https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=500&q=80',
-  },
-];
-
-const NEAR_USYD = [
-  {
-    id: '1',
-    title: 'Grounds of Alexandria',
-    category: 'Café · Brunch',
-    rating: 4.7,
-    distance: '0.21km',
-    badge: 'Free',
-    badgeColor: '#10B981',
-    image: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=300&q=80',
-  },
-  {
-    id: '2',
-    title: 'Royal Botanic Garden',
-    category: 'Park · Nature',
-    rating: 4.8,
-    distance: '5.3km',
-    badge: null,
-    badgeColor: null,
-    image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&q=80',
-  },
-];
+const TRENDING = [];
 
 // ─── Map preview card ─────────────────────────────────────────────────────────
 
@@ -195,9 +145,6 @@ function TrendingCard({ item }) {
             <View style={s.trendingMeta}>
               <Star size={11} color="#F59E0B" fill="#F59E0B" />
               <Text style={s.trendingRating}>{item.rating}</Text>
-              <Text style={s.trendingDot}>·</Text>
-              <Navigation size={10} color="#D1D5DB" strokeWidth={2} />
-              <Text style={s.trendingDist}>{item.distance}</Text>
             </View>
           </View>
         </LinearGradient>
@@ -232,7 +179,6 @@ function NearbyCard({ item, isLast }) {
             </View>
           )}
         </View>
-        <Text style={s.nearbyCategory}>{item.category}</Text>
         <View style={s.nearbyMetaRow}>
           <View style={s.nearbyRatingGroup}>
             <Star size={11} color="#F59E0B" fill="#F59E0B" />
@@ -407,11 +353,20 @@ export default function ExploreScreen() {
     return name;
   }, [suburb, cityName, coords]);
 
+  // City name only for page header (e.g., "Sydney")
+  const displayCityName = useMemo(() => {
+    return cityName || 'Sydney';
+  }, [cityName]);
+
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [voiceVisible, setVoiceVisible] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [aiTip, setAiTip] = useState(null);
+  const [nearestPlaces, setNearestPlaces] = useState([]);
+  const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
+  const [recommendedPlaces, setRecommendedPlaces] = useState([]);
+  const [isLoadingRecommended, setIsLoadingRecommended] = useState(false);
 
   // Core RAG search — called from both the keyboard submit and the voice modal.
   const triggerSearch = async (searchQuery) => {
@@ -452,16 +407,83 @@ export default function ExploreScreen() {
     });
   }, [coords, cityName, suburb, locationName]);
 
-  // Handle pull-to-refresh to update location
+  // Handle pull-to-refresh to update location and data
   const [isRefreshing, setIsRefreshing] = useState(false);
   
   const onRefresh = async () => {
     console.log('[ExploreScreen] Manual refresh triggered');
     setIsRefreshing(true);
-    await refreshLocation();
-    console.log('[ExploreScreen] Refresh completed');
-    setIsRefreshing(false);
+    
+    try {
+      // Priority 1: Fast API calls (no location dependency)
+      console.log('[ExploreScreen] Step 1: Fetching recommended places...');
+      const recommended = await discoveryService.getRecommendedPlaces();
+      setRecommendedPlaces(recommended.slice(0, 3));
+      console.log('[ExploreScreen] Recommended places updated');
+      
+      // Priority 2: Fetch nearest places with current coords
+      if (coords) {
+        console.log('[ExploreScreen] Step 2: Fetching nearest places...');
+        const nearest = await discoveryService.getNearestPlaces(coords);
+        setNearestPlaces(nearest.slice(0, 3));
+        console.log('[ExploreScreen] Nearest places updated');
+      }
+      
+      // Priority 3: Background location update (non-blocking)
+      console.log('[ExploreScreen] Step 3: Updating location in background...');
+      refreshLocation().then(() => {
+        console.log('[ExploreScreen] Location updated in background');
+      }).catch(err => {
+        console.warn('[ExploreScreen] Background location update failed:', err.message);
+      });
+      
+      console.log('[ExploreScreen] Refresh completed - APIs done, location updating...');
+    } catch (error) {
+      console.error('[ExploreScreen] Refresh failed:', error);
+    } finally {
+      // End refresh state immediately after API calls complete
+      setIsRefreshing(false);
+      console.log('[ExploreScreen] Refresh indicator hidden');
+    }
   };
+
+  // Fetch nearest places when location changes
+  useEffect(() => {
+    const fetchNearestPlaces = async () => {
+      if (!coords) return;
+      
+      setIsLoadingPlaces(true);
+      try {
+        const places = await discoveryService.getNearestPlaces(coords);
+        // Only take the first 3 places
+        setNearestPlaces(places.slice(0, 3));
+      } catch (error) {
+        console.error('[ExploreScreen] Failed to fetch nearest places:', error);
+      } finally {
+        setIsLoadingPlaces(false);
+      }
+    };
+
+    fetchNearestPlaces();
+  }, [coords]);
+
+  // Fetch recommended places on mount
+  useEffect(() => {
+    const fetchRecommendedPlaces = async () => {
+      setIsLoadingRecommended(true);
+      try {
+        const places = await discoveryService.getRecommendedPlaces();
+        // Only take the first 3 places
+        setRecommendedPlaces(places.slice(0, 3));
+      } catch (error) {
+        console.error('[ExploreScreen] Failed to fetch recommended places:', error);
+      } finally {
+        setIsLoadingRecommended(false);
+      }
+    };
+
+    fetchRecommendedPlaces();
+  }, []);
 
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
@@ -481,7 +503,7 @@ export default function ExploreScreen() {
         {/* ── Page header ──────────────────────────────────────────────────── */}
         <View style={s.pageHeader}>
           <Text style={s.pageMeta}>DISCOVER</Text>
-          <Text style={s.pageTitle}>Explore Sydney 🗺️</Text>
+          <Text style={s.pageTitle}>Explore {displayCityName} 🗺️</Text>
         </View>
 
         {/* ── Search bar ───────────────────────────────────────────────────── */}
@@ -550,27 +572,47 @@ export default function ExploreScreen() {
         {/* ── Trending Now ─────────────────────────────────────────────────── */}
         <View style={s.section}>
           <SectionHeader title="🔥 Trending Now" />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={s.trendingScroll}
-          >
-            {TRENDING.map(t => <TrendingCard key={t.id} item={t} />)}
-          </ScrollView>
+          {isLoadingRecommended ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.trendingScroll}
+            >
+              {[1, 2, 3].map((i) => (
+                <View key={i} style={[s.trendingShell, { backgroundColor: colors.surface, width: 168, height: 168, borderRadius: 24, alignItems: 'center', justifyContent: 'center' }]}>
+                  <ActivityIndicator size="small" color={colors.primary} />
+                </View>
+              ))}
+            </ScrollView>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={s.trendingScroll}
+            >
+              {recommendedPlaces.map(t => <TrendingCard key={t.id} item={t} />)}
+            </ScrollView>
+          )}
         </View>
 
         {/* ── Near Current Location ────────────────────────────────────────────────────── */}
         <View style={s.section}>
           <SectionHeader title={`📍 Near ${locationName}`} />
-          <View style={s.nearbyList}>
-            {NEAR_USYD.map((item, i) => (
-              <NearbyCard
-                key={item.id}
-                item={item}
-                isLast={i === NEAR_USYD.length - 1}
-              />
-            ))}
-          </View>
+          {isLoadingPlaces ? (
+            <View style={[s.nearbyList, { alignItems: 'center', paddingVertical: 20 }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+            </View>
+          ) : (
+            <View style={s.nearbyList}>
+              {nearestPlaces.map((item, i) => (
+                <NearbyCard
+                  key={item.id}
+                  item={item}
+                  isLast={i === nearestPlaces.length - 1}
+                />
+              ))}
+            </View>
+          )}
         </View>
 
         <View style={{ height: 24 }} />
