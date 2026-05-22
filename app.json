@@ -25,6 +25,9 @@
       "supportsTablet": false,
       "config": {
         "googleMapsApiKey": "${EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "plugins": [
@@ -38,6 +41,11 @@
         }
       ],
       "expo-health-connect"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "ff104961-2647-4a83-9eb3-6b903041d9cc"
+      }
+    }
   }
 }

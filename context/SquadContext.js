@@ -1,61 +1,34 @@
-/**
- * SquadContext.js
- *
- * Owns all ephemeral squad state — squads that exist for 2-3 hrs only.
- * This context sits above the UI's "social layer" and handles:
- *   - Fetching nearby squads from the backend (or mock)
- *   - 30-second polling to simulate real-time membership changes
- *   - Coordinating join/create across both SquadContext and UserContext
- *
- * Provider nesting requirement:
- *   <UserProvider> → <LocationProvider> → <SquadProvider> → children
- *
- * This ordering lets SquadProvider call useUser() (for Aura scoring) and
- * useLocation() (for proximity-sorted results) without circular imports.
- */
-
-import React, {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  useCallback,
-} from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
 import { squadService } from '../services/squadService';
 import { useUser } from '../hooks/useUser';
 import { useLocation } from '../hooks/useLocation';
 
 export const SquadContext = createContext(null);
 
-const POLL_INTERVAL_MS = 30_000; // 30 s — fast enough for social proof, cheap on battery
-
-// ─── Provider ─────────────────────────────────────────────────────────────────
+const POLL_INTERVAL_MS = 30_000;
 
 export function SquadProvider({ children }) {
-  const { joinSquad: userJoinSquad } = useUser();
-  const { coords }                   = useLocation();
+  // CRITICAL: Pull the actual user ID and their interests from UserContext
+  const { user, joinSquad: userJoinSquad } = useUser(); 
+  const { coords } = useLocation();
 
   const [nearbySquads, setNearbySquads] = useState([]);
   const [mySquad,      setMySquad]      = useState(null);
   const [isLoading,    setIsLoading]    = useState(false);
   const [error,        setError]        = useState(null);
 
-  // Keep a ref to the latest coords so the polling interval always uses
-  // the current position without needing to be recreated every location update.
   const coordsRef = useRef(coords);
   useEffect(() => { coordsRef.current = coords; }, [coords]);
 
-  // ── Fetch ────────────────────────────────────────────────────────────────
-
+  // ── Fetch nearby squads ────────────────────────────────────────────────────
   const fetchNearbySquads = useCallback(async (overrideCoords) => {
-    setIsLoading(true);
-    setError(null);
     try {
+      setIsLoading(true);
       const data = await squadService.fetchNearbySquads(
-        overrideCoords ?? coordsRef.current
+        overrideCoords || coordsRef.current
       );
       setNearbySquads(data);
+      setError(null);
     } catch (err) {
       setError(err.message ?? 'Could not load squads.');
     } finally {
@@ -63,92 +36,84 @@ export function SquadProvider({ children }) {
     }
   }, []);
 
-  // Initial fetch on mount, refresh whenever coords change significantly
+  // ── Initial fetch + polling ───────────────────────────────────────────────────
   useEffect(() => {
     fetchNearbySquads(coords);
-  }, [coords?.latitude, coords?.longitude]);
+  }, [coords, fetchNearbySquads]);
 
-  // 30-second polling — simulates real-time member count changes.
-  // Uses coordsRef so the interval doesn't need to be torn down on every
-  // location update (saves battery by avoiding unnecessary re-subscription).
   useEffect(() => {
-    const timer = setInterval(() => {
+    const pollTimer = setInterval(() => {
       squadService
         .fetchNearbySquads(coordsRef.current)
         .then(data => {
           setNearbySquads(prev => {
             // Merge: preserve mySquad's memberCount update if it's in the list
-            return data.map(d => {
-              const existing = prev.find(p => p.id === d.id);
-              return existing ? { ...d, _prev: existing } : d;
+            return data.map(s => {
+              const existing = prev.find(p => p.id === s.id);
+              return existing ? { ...s, memberCount: existing.memberCount } : s;
             });
           });
         })
-        .catch(() => {}); // silent — poll failure shouldn't break the UI
+        .catch(err => setError(err.message ?? 'Polling error'));
     }, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
-  }, []); // intentionally empty — coordsRef handles position updates
 
-  // ── Join ─────────────────────────────────────────────────────────────────
+    return () => clearInterval(pollTimer);
+  }, []);
 
-  const joinSquad = useCallback(async (squadId) => {
-    const squad = nearbySquads.find(s => s.id === squadId);
-    if (!squad) return;
+  // ── Unified Join / Create (Aligned to Java Upsert) ──────────────────────
 
-    // Optimistic UI — update member count immediately
-    setNearbySquads(prev =>
-      prev.map(s =>
-        s.id === squadId
-          ? { ...s, memberCount: s.memberCount + 1, spotsLeft: Math.max(0, s.spotsLeft - 1) }
-          : s
-      )
-    );
-    setMySquad({ ...squad, memberCount: squad.memberCount + 1 });
+  const handleJoinOrCreate = useCallback(async (eventId) => {
+    // 1. Fallbacks in case UserContext isn't fully loaded
+    const currentUserId = user?.id || 'anonymous-user';
+    const userInterests = user?.interests || ['coffee', 'techno']; // Ensure we send something for the AI!
+
+    // 2. Optimistic UI: Try to find the squad to make the UI feel instant
+    const existingSquad = nearbySquads.find(s => s.eventId === eventId || s.id === eventId);
+    
+    if (existingSquad) {
+      setMySquad({ 
+        ...existingSquad, 
+        memberUserIds: [...(existingSquad.memberUserIds || []), currentUserId] 
+      });
+    } else {
+      setIsLoading(true); // Hard loading state if creating a brand new one
+    }
 
     try {
-      await squadService.joinSquad(squadId, 'current-user');
-      // Sync to UserContext: adds squad to activeSquads, awards Aura points
-      userJoinSquad(squad);
+      // 3. Fire the unified network request we updated in squadService.js
+      const result = await squadService.joinSquad(eventId, currentUserId, userInterests);
+      
+      // CRITICAL OVERRIDE: 
+      // result.squad contains the REAL data from the DB, including the newly generated AI icebreaker!
+      // We must overwrite the optimistic state with the absolute truth from the Java backend.
+      setMySquad(result.squad);
+
+      // Update the nearby list with the fresh data
+      setNearbySquads(prev => {
+        const filtered = prev.filter(s => s.eventId !== eventId && s.id !== result.squad.id);
+        return [result.squad, ...filtered];
+      });
+
+      userJoinSquad(result.squad);
+      return result.squad;
+
     } catch (err) {
-      // Rollback optimistic update on failure
-      setNearbySquads(prev =>
-        prev.map(s => s.id === squadId ? squad : s)
-      );
+      // 4. Rollback on failure
       setMySquad(null);
       setError(err.message ?? 'Could not join squad.');
-    }
-  }, [nearbySquads, userJoinSquad]);
-
-  // ── Create ───────────────────────────────────────────────────────────────
-
-  const createSquad = useCallback(async (spotId) => {
-    try {
-      const newSquad = await squadService.createSquad(spotId, 'current-user');
-      setNearbySquads(prev => [newSquad, ...prev]);
-      setMySquad(newSquad);
-      userJoinSquad(newSquad); // count it as joined for Aura scoring
-      return newSquad;
-    } catch (err) {
-      setError(err.message ?? 'Could not create squad.');
       throw err;
+    } finally {
+      setIsLoading(false);
     }
-  }, [userJoinSquad]);
+  }, [nearbySquads, user, userJoinSquad]);
 
-  // ── Leave ────────────────────────────────────────────────────────────────
+  // Map the old separate functions to the new unified handler for backward compatibility in your UI components
+  const joinSquad = handleJoinOrCreate;
+  const createSquad = handleJoinOrCreate; 
 
   const leaveSquad = useCallback(() => {
-    if (!mySquad) return;
-    setNearbySquads(prev =>
-      prev.map(s =>
-        s.id === mySquad.id
-          ? { ...s, memberCount: Math.max(1, s.memberCount - 1), spotsLeft: s.spotsLeft + 1 }
-          : s
-      )
-    );
-    setMySquad(null);
-  }, [mySquad]);
-
-  // ── Value ────────────────────────────────────────────────────────────────
+    setMySquad(null); // Real-world: You'd want an API call here to remove the user from the DB array
+  }, []);
 
   return (
     <SquadContext.Provider
@@ -167,5 +132,3 @@ export function SquadProvider({ children }) {
     </SquadContext.Provider>
   );
 }
-
-

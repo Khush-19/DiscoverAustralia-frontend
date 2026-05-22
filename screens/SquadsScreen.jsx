@@ -16,6 +16,7 @@ import {
   Check,
   Users,
 } from 'lucide-react-native';
+import { v4 as uuidv4 } from 'react-native-uuid';
 import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
 import { useSquad } from '../hooks/useSquad';
@@ -102,31 +103,60 @@ function AvatarStack({ avatars = [], extra = 0, cardBg }) {
   );
 }
 
+// ─── Helper: Create avatars from memberUserIds ─────────────────────────────────
+
+function getAvatarColor(index) {
+  const colors = [
+    '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899',
+    '#14B8A6', '#F97316', '#6366F1', '#D946EF',
+  ];
+  return colors[index % colors.length];
+}
+
+function getMemberAvatars(memberUserIds = []) {
+  return (memberUserIds || []).slice(0, 3).map((userId, index) => ({
+    initials: userId.substring(0, 2).toUpperCase(),
+    color: getAvatarColor(index),
+  }));
+}
+
 // ─── Active squad card ────────────────────────────────────────────────────────
 
 function ActiveSquadCard({ item }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const { isSquadJoined } = useUser();
-  const { joinSquad }     = useSquad();
+  const { joinSquad } = useSquad();
   const joined = isSquadJoined(item.id);
+  
+  // Derive member count from memberUserIds array
+  const memberCount = (item.memberUserIds?.length) ?? 0;
+  const avatars = getMemberAvatars(item.memberUserIds);
+  const extra = Math.max(0, memberCount - 3);
+  
+  // Handle icebreaker: null means pre-quorum, otherwise show the prompt
+  const hasIcebreaker = item.icebreaker?.promptText;
+  const icebreakerText = hasIcebreaker 
+    ? item.icebreaker.promptText 
+    : 'Waiting for more people to join...';
 
   return (
     <View style={s.activeCard}>
 
-      {/* Row 1 — title + spots-left badge + relative time ─────────────────── */}
+      {/* Row 1 — title + member count ──────────────────────────────────────── */}
       <View style={s.cardRow1}>
         <Text style={s.cardTitle} numberOfLines={1}>{item.title}</Text>
         <View style={s.cardRow1Right}>
-          <View style={s.spotsLeftPill}>
-            <Text style={s.spotsLeftText}>{item.spotsLeft} left</Text>
+          <View style={s.memberCountPill}>
+            <Text style={s.memberCountText}>{memberCount} member{memberCount !== 1 ? 's' : ''}</Text>
           </View>
-          <Text style={s.relTimeText}>{item.startsIn}</Text>
         </View>
       </View>
 
-      {/* Subtitle */}
-      <Text style={s.cardSubtitle} numberOfLines={1}>{item.subtitle}</Text>
+      {/* Icebreaker prompt or waiting state */}
+      <Text style={[s.cardSubtitle, hasIcebreaker ? s.cardIcebreakerActive : s.cardIcebreakerWaiting]} numberOfLines={2}>
+        {icebreakerText}
+      </Text>
 
       {/* Thin divider */}
       <View style={s.cardDivider} />
@@ -138,31 +168,31 @@ function ActiveSquadCard({ item }) {
         <View style={s.cardRow2Left}>
           <View style={s.dateRow}>
             <CalendarDays size={11} color={colors.textMuted} strokeWidth={2} />
-            <Text style={s.dateText}>{item.day}</Text>
+            <Text style={s.dateText}>{item.day || 'Today'}</Text>
             <Text style={s.inlineDot}>·</Text>
             <Clock size={11} color={colors.textMuted} strokeWidth={2} />
-            <Text style={s.timeText}>{item.time}</Text>
+            <Text style={s.timeText}>{item.time || 'Now'}</Text>
           </View>
           <View
             style={[
               s.categoryTag,
               {
-                backgroundColor: item.tagColor + '1A',
-                borderColor:     item.tagColor + '55',
+                backgroundColor: (item.tagColor || '#06B6D4') + '1A',
+                borderColor:     (item.tagColor || '#06B6D4') + '55',
               },
             ]}
           >
-            <Text style={[s.categoryText, { color: item.tagColor }]}>
-              {item.category}
+            <Text style={[s.categoryText, { color: item.tagColor || '#06B6D4' }]}>
+              {item.category || 'Squad'}
             </Text>
           </View>
         </View>
 
-        {/* RIGHT: avatar stack (Row 2 analog) + Join Squad button (Row 3 analog) */}
+        {/* RIGHT: avatar stack + Join Squad button */}
         <View style={s.cardRow2Right}>
           <AvatarStack
-            avatars={item.memberAvatars ?? []}
-            extra={Math.max(0, (item.memberCount ?? 0) - 3)}
+            avatars={avatars}
+            extra={extra}
             cardBg={colors.surface}
           />
           {joined ? (
@@ -176,7 +206,7 @@ function ActiveSquadCard({ item }) {
             <TouchableOpacity
               style={s.joinSquadBtn}
               activeOpacity={0.82}
-              onPress={() => joinSquad(item)}
+              onPress={() => joinSquad(item.id || item.eventId)}
             >
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
@@ -243,6 +273,12 @@ export default function SquadsScreen() {
   const { nearbySquads, isLoading, createSquad } = useSquad();
   const s = useMemo(() => getStyles(colors), [colors]);
 
+  const handleCreateNewSquad = () => {
+    // Generate a fresh UUID for the new squad event
+    const newEventId = uuidv4();
+    createSquad(newEventId);
+  };
+
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
       <ScrollView
@@ -265,7 +301,7 @@ export default function SquadsScreen() {
           <TouchableOpacity
             style={s.createBtn}
             activeOpacity={0.82}
-            onPress={() => createSquad(null)}
+            onPress={handleCreateNewSquad}
           >
             <Plus size={15} color="#000" strokeWidth={2.8} />
             <Text style={s.createBtnText}>Create</Text>
@@ -473,6 +509,19 @@ const getStyles = (colors = {}) => StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(56,189,248,0.32)',
   },
+  memberCountPill: {
+    backgroundColor: 'rgba(56,189,248,0.14)',
+    borderRadius: 8,
+    paddingHorizontal: 9,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(56,189,248,0.32)',
+  },
+  memberCountText: {
+    fontSize: 11,
+    color: '#38BDF8',
+    fontWeight: '800',
+  },
   spotsLeftText: {
     fontSize: 11,
     color: '#38BDF8',
@@ -489,6 +538,16 @@ const getStyles = (colors = {}) => StyleSheet.create({
     color: colors.textSecondary,
     fontWeight: '500',
     marginBottom: 14,
+  },
+  cardIcebreakerWaiting: {
+    fontSize: 11,
+    color: colors.textMuted,
+    fontStyle: 'italic',
+  },
+  cardIcebreakerActive: {
+    fontSize: 12,
+    color: colors.text,
+    fontWeight: '500',
   },
 
   cardDivider: {
