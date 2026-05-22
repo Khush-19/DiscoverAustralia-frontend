@@ -75,10 +75,12 @@ function AvatarStack({ avatars = [], extra = 0, cardBg }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const bgColor = cardBg || colors.surface;
+  // Ensure avatars is an array
+  const avatarList = Array.isArray(avatars) ? avatars : [];
 
   return (
     <View style={s.avatarStack}>
-      {avatars.slice(0, 3).map((a, i) => (
+      {avatarList.slice(0, 3).map((a, i) => (
         <View
           key={i}
           style={[
@@ -129,9 +131,9 @@ function ActiveSquadCard({ item }) {
   const { joinSquad } = useSquad();
   const joined = isSquadJoined(item.id);
   
-  // Derive member count from memberUserIds array
-  const memberCount = (item.memberUserIds?.length) ?? 0;
-  const avatars = getMemberAvatars(item.memberUserIds);
+  // Derive member count from memberUserIds array or use provided memberCount
+  const memberCount = item.memberCount ?? (item.memberUserIds?.length) ?? 0;
+  const avatars = item.memberAvatars || getMemberAvatars(item.memberUserIds);
   const extra = Math.max(0, memberCount - 3);
   
   // Handle icebreaker: null means pre-quorum, otherwise show the prompt

@@ -45,9 +45,12 @@ function LiveDot({ color }) {
 // ─── Overlapping avatar circles with initials ─────────────────────────────────
 
 function AvatarRow({ avatars, extra, cardBg }) {
+  // Ensure avatars is an array
+  const avatarList = Array.isArray(avatars) ? avatars : [];
+  
   return (
     <View style={styles.avatarRow}>
-      {avatars.slice(0, 3).map((a, i) => (
+      {avatarList.slice(0, 3).map((a, i) => (
         <View
           key={i}
           style={[
@@ -117,7 +120,7 @@ export default function SquadBanner() {
 
         {/* Subtitle — destination + member count */}
         <Text style={s.subtitle} numberOfLines={1}>
-          {featured.memberCount} students heading to {featured.spotName}
+          {featured.memberCount} students heading to {featured.spotName || 'this spot'}
         </Text>
 
         {/* Avatar row + stat pills */}
@@ -132,7 +135,7 @@ export default function SquadBanner() {
           </View>
           <View style={[s.statPill, s.statPillBlue]}>
             <Text style={[s.statPillText, s.statPillTextBlue]}>
-              {featured.spotName.split(' ')[0]}
+              {featured.spotName ? featured.spotName.split(' ')[0] : 'Spot'}
             </Text>
           </View>
           {featured.eta ? (

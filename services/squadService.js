@@ -1,3 +1,105 @@
+import CONFIG from '../constants/config';
+import * as SecureStore from 'expo-secure-store';
+
+const BASE_URL = CONFIG.API_URL || 'http://10.0.2.2:8000';
+const MOCK_MODE = true;
+
+// ─── Mock implementations ─────────────────────────────────────────────────────
+
+async function mockFetchNearbySquads(coords) {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return [
+    {
+      id: 'squad-1',
+      eventId: 'evt-001',
+      title: 'Coffee & Code Session',
+      category: 'Tech',
+      tagColor: '#3B82F6',
+      day: 'Today',
+      time: '2:00 PM',
+      memberUserIds: ['user1', 'user2', 'user3'],
+      memberCount: 3,
+      spotName: 'Starbucks George Street',
+      eta: '5 min',
+      memberAvatars: [
+        { initials: 'U1', color: '#3B82F6' },
+        { initials: 'U2', color: '#EF4444' },
+        { initials: 'U3', color: '#10B981' }
+      ],
+      icebreaker: {
+        promptText: 'What\'s your favorite programming language?'
+      }
+    },
+    {
+      id: 'squad-2',
+      eventId: 'evt-002',
+      title: 'Sunset Beach Walk',
+      category: 'Outdoor',
+      tagColor: '#F59E0B',
+      day: 'Today',
+      time: '5:30 PM',
+      memberUserIds: ['user4', 'user5'],
+      memberCount: 2,
+      spotName: 'Bondi Beach',
+      eta: '15 min',
+      memberAvatars: [
+        { initials: 'U4', color: '#8B5CF6' },
+        { initials: 'U5', color: '#EC4899' }
+      ],
+      icebreaker: null
+    },
+    {
+      id: 'squad-3',
+      eventId: 'evt-003',
+      title: 'Study Group - USYD Library',
+      category: 'Study',
+      tagColor: '#10B981',
+      day: 'Tomorrow',
+      time: '10:00 AM',
+      memberUserIds: ['user6', 'user7', 'user8', 'user9'],
+      memberCount: 4,
+      spotName: 'Fisher Library USYD',
+      eta: '20 min',
+      memberAvatars: [
+        { initials: 'U6', color: '#14B8A6' },
+        { initials: 'U7', color: '#F97316' },
+        { initials: 'U8', color: '#6366F1' }
+      ],
+      icebreaker: {
+        promptText: 'Which subject are you studying?'
+      }
+    }
+  ];
+}
+
+async function mockJoinSquad(eventId, userId, interests = []) {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return {
+    newlyCreated: false,
+    squad: {
+      id: `squad-${eventId}`,
+      eventId,
+      memberUserIds: ['user1', 'user2', userId],
+      icebreaker: {
+        promptText: 'Welcome! Introduce yourself to the squad.'
+      }
+    }
+  };
+}
+
+async function mockCreateSquad(eventId, userId, interests = []) {
+  await new Promise(resolve => setTimeout(resolve, 300));
+  return {
+    newlyCreated: true,
+    squad: {
+      id: `squad-${eventId}`,
+      eventId,
+      memberUserIds: [userId],
+      icebreaker: null
+    }
+  };
+}
+
 // ─── Real implementations (Aligned to Spring Boot Backend) ──────────────
 
 async function realFetchNearbySquads(coords) {
