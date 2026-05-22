@@ -83,11 +83,12 @@ export default function PlaceDetailScreen() {
   const handleNavigate = () => {
     if (!placeDetail) return;
     
-    // Navigate to map with this location focused
-    navigation.navigate('FullMap', {
-      focusLocation: {
+    // Navigate to activity location map with this location focused
+    navigation.navigate('ActivityLocationMap', {
+      location: {
         latitude: placeDetail.latitude,
         longitude: placeDetail.longitude,
+        title: placeDetail.name,
       }
     });
   };
@@ -193,11 +194,6 @@ export default function PlaceDetailScreen() {
             <View style={s.ratingRow}>
               <Star size={18} color="#F59E0B" fill="#F59E0B" />
               <Text style={s.ratingText}>{placeDetail.star.toFixed(1)}</Text>
-              <Text style={s.ratingSeparator}>•</Text>
-              <MapPin size={14} color="rgba(255,255,255,0.8)" strokeWidth={2} />
-              <Text style={s.locationText}>
-                {placeDetail.latitude.toFixed(4)}, {placeDetail.longitude.toFixed(4)}
-              </Text>
             </View>
           </View>
         </View>
@@ -232,7 +228,7 @@ export default function PlaceDetailScreen() {
               <View style={s.sectionHeader}>
                 <Clock size={18} color={colors.primary} strokeWidth={2.5} />
                 <Text style={s.sectionTitle}>
-                  Upcoming Activities ({placeDetail.activities.length})
+                  Activities ({placeDetail.activities.length})
                 </Text>
               </View>
               

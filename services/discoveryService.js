@@ -507,14 +507,27 @@ async function getRecommendedPlaces() {
     
     // Transform API response to match the expected format
     // Only need: image, tag (badge), rating
-    return data.map(place => ({
-      id: place.id.timestamp || place.id.date || Math.random().toString(),
+    const transformed = data.map(place => ({
+      id: place.id || place.idString || Math.random().toString(),
       title: place.name,
       badge: place.tag,
       badgeColor: '#10B981', // Green for "Free" or other tags
       rating: place.star,
       image: place.img,
     }));
+    
+    // Remove duplicates based on id
+    const uniquePlaces = [];
+    const seenIds = new Set();
+    for (const place of transformed) {
+      if (!seenIds.has(place.id)) {
+        seenIds.add(place.id);
+        uniquePlaces.push(place);
+      }
+    }
+    
+    console.log('[getRecommendedPlaces] After deduplication:', uniquePlaces.length);
+    return uniquePlaces;
   } catch (error) {
     console.error('[getRecommendedPlaces] Error:', error);
     throw error;
@@ -563,8 +576,8 @@ async function getActivitiesWithin200km(coords) {
     console.log('[getActivitiesWithin200km] Received data count:', data.length);
     
     // Transform API response to map marker format
-    return data.map((place, index) => ({
-      id: place.name + '-' + index,
+    return data.map((place) => ({
+      id: place.id,
       name: place.name,
       latitude: place.latitude,
       longitude: place.longitude,
@@ -644,47 +657,78 @@ async function searchPlaces(keyword) {
 
 async function getPlaceDetail(placeId) {
   try {
-    console.log('[getPlaceDetail] Fetching place detail for:', placeId);
+    console.log('[getPlaceDetail] ========== START ==========');
+    console.log('[getPlaceDetail] Input placeId:', placeId);
+    console.log('[getPlaceDetail] placeId type:', typeof placeId);
     console.log('[getPlaceDetail] BASE_URL:', BASE_URL);
     
     const url = `${BASE_URL}/api/explore/place-detail`;
     console.log('[getPlaceDetail] Request URL:', url);
+    console.log('[getPlaceDetail] Request method: POST');
     
     // Get JWT token for authentication
     const token = await SecureStore.getItemAsync('discover_au_jwt');
     console.log('[getPlaceDetail] Token exists:', !!token);
+    console.log('[getPlaceDetail] Token length:', token ? token.length : 0);
+    if (token) {
+      console.log('[getPlaceDetail] Token preview:', token.substring(0, 20) + '...');
+    }
+    
+    // Build request headers
+    const requestHeaders = {
+      'Content-Type': 'application/json',
+    };
+    if (token) {
+      requestHeaders['Authorization'] = `Bearer ${token}`;
+    }
+    
+    console.log('[getPlaceDetail] Request headers:', JSON.stringify(requestHeaders, null, 2));
+    
+    // Build request body
+    const requestBody = {
+      placeId: placeId
+    };
+    console.log('[getPlaceDetail] Request body:', JSON.stringify(requestBody));
     
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-      },
-      body: JSON.stringify({
-        placeId: placeId
-      })
+      headers: requestHeaders,
+      body: JSON.stringify(requestBody)
     });
     
     console.log('[getPlaceDetail] Response status:', res.status);
+    console.log('[getPlaceDetail] Response OK:', res.ok);
+    console.log('[getPlaceDetail] Response headers:', res.headers);
+    
+    // Try to read response text first for better error debugging
+    const responseText = await res.text();
+    console.log('[getPlaceDetail] Response text:', responseText);
     
     if (!res.ok) {
       let errorDetail = `HTTP error! status: ${res.status}`;
       try {
-        const errorData = await res.json();
-        console.error('[getPlaceDetail] Error response:', errorData);
-        errorDetail = errorData.detail || errorData.message || errorDetail;
+        const errorData = JSON.parse(responseText);
+        console.error('[getPlaceDetail] Error response parsed:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorData.error || errorDetail;
+        console.error('[getPlaceDetail] Error detail:', errorDetail);
       } catch (e) {
-        console.error('[getPlaceDetail] Could not parse error response');
+        console.error('[getPlaceDetail] Could not parse error response as JSON');
+        console.error('[getPlaceDetail] Parse error:', e.message);
       }
       throw new Error(errorDetail);
     }
     
-    const data = await res.json();
+    const data = JSON.parse(responseText);
     console.log('[getPlaceDetail] Received data:', data);
+    console.log('[getPlaceDetail] ========== END SUCCESS ==========');
     
     return data;
   } catch (error) {
-    console.error('[getPlaceDetail] Error:', error);
+    console.error('[getPlaceDetail] ========== ERROR ==========');
+    console.error('[getPlaceDetail] Error name:', error.name);
+    console.error('[getPlaceDetail] Error message:', error.message);
+    console.error('[getPlaceDetail] Error stack:', error.stack);
+    console.error('[getPlaceDetail] ========== END ERROR ==========');
     throw error;
   }
 }
