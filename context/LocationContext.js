@@ -58,6 +58,7 @@ export function LocationProvider({ children }) {
       ]);
 
       if (geo.status === 'fulfilled') {
+        console.log('[LocationContext] Reverse geocoded:', geo.value);
         setCityName(geo.value.city);
         setSuburb(geo.value.suburb);
       }
@@ -72,6 +73,12 @@ export function LocationProvider({ children }) {
         syncUserLocationToBackend(position, user.email).catch(() => {});
       }
       updateUserLocation(position);
+      
+      console.log('[LocationContext] Location refreshed successfully:', {
+        coords: position,
+        cityName: geo.status === 'fulfilled' ? geo.value.city : null,
+        suburb: geo.status === 'fulfilled' ? geo.value.suburb : null
+      });
 
     } catch (err) {
       setError(err.message ?? 'Location unavailable.');

@@ -12,6 +12,7 @@ import {
   Animated,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -388,6 +389,23 @@ export default function ExploreScreen() {
   const { vibe, auraScore } = useUser();
   const { colors, isDark } = useTheme();
   const s = useMemo(() => getStyles(colors, isDark), [colors, isDark]);
+  const { coords, cityName, suburb, refreshLocation } = useLocation();
+
+  const lat = coords?.latitude ?? -33.8885;
+  const lon = coords?.longitude ?? 151.1873;
+  
+  // Generate dynamic location name based on user's current position
+  // This will automatically update when coords, cityName, or suburb changes
+  const locationName = useMemo(() => {
+    const name = suburb ? `${suburb}, ${cityName || 'Sydney'}` : (cityName || 'USYD');
+    console.log('[ExploreScreen] Location updated:', {
+      coords,
+      cityName,
+      suburb,
+      locationName: name
+    });
+    return name;
+  }, [suburb, cityName, coords]);
 
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
@@ -424,11 +442,40 @@ export default function ExploreScreen() {
     setQuery('');
   };
 
+  // Monitor location changes
+  useEffect(() => {
+    console.log('[ExploreScreen] Location state changed:', {
+      coords,
+      cityName,
+      suburb,
+      locationName
+    });
+  }, [coords, cityName, suburb, locationName]);
+
+  // Handle pull-to-refresh to update location
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  const onRefresh = async () => {
+    console.log('[ExploreScreen] Manual refresh triggered');
+    setIsRefreshing(true);
+    await refreshLocation();
+    console.log('[ExploreScreen] Refresh completed');
+    setIsRefreshing(false);
+  };
+
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary}
+            colors={[colors.primary]}
+          />
+        }
       >
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
@@ -512,13 +559,9 @@ export default function ExploreScreen() {
           </ScrollView>
         </View>
 
-        {/* ── Near USYD ────────────────────────────────────────────────────── */}
+        {/* ── Near Current Location ────────────────────────────────────────────────────── */}
         <View style={s.section}>
-          <SectionHeader
-            title="📍 Near USYD"
-            rightLabel="See map"
-            onRight={() => { }}
-          />
+          <SectionHeader title={`📍 Near ${locationName}`} />
           <View style={s.nearbyList}>
             {NEAR_USYD.map((item, i) => (
               <NearbyCard

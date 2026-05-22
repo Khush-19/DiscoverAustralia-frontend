@@ -109,14 +109,99 @@ export async function getCurrentLocation() {
  * Returns { city, suburb, region } where available.
  */
 export async function reverseGeocode({ latitude, longitude }) {
-  const results = await ExpoLocation.reverseGeocodeAsync({ latitude, longitude });
-  if (!results.length) return { city: 'Sydney', suburb: null, region: 'NSW' };
-  const r = results[0];
-  return {
-    city:   r.city   ?? r.subregion ?? 'Sydney',
-    suburb: r.district ?? r.subregion ?? null,
-    region: r.region ?? 'NSW',
-  };
+  try {
+    // Validate coordinates first
+    if (!latitude || !longitude || 
+        isNaN(latitude) || isNaN(longitude) ||
+        latitude < -90 || latitude > 90 ||
+        longitude < -180 || longitude > 180) {
+      console.warn('[LocationService] Invalid coordinates:', { latitude, longitude });
+      return { city: 'Sydney', suburb: null, region: 'NSW' };
+    }
+
+    console.log('[LocationService] Attempting reverse geocode for:', { latitude, longitude });
+    
+    // Try native geocoder first
+    const results = await ExpoLocation.reverseGeocodeAsync({ 
+      latitude,
+      longitude,
+      useGoogleMaps: false
+    });
+    
+    console.log('[LocationService] Native geocode results:', results?.length || 0, 'results');
+    
+    if (results && results.length) {
+      const r = results[0];
+      console.log('[LocationService] Geocode result keys:', Object.keys(r));
+      
+      const city = r.city ?? r.locality ?? r.subregion ?? r.region ?? 'Sydney';
+      const suburb = r.district ?? r.suburb ?? r.neighborhood ?? r.sublocality ?? r.name ?? null;
+      
+      console.log('[LocationService] Native geocode successful:', { city, suburb });
+      
+      return {
+        city,
+        suburb,
+        region: r.region ?? 'NSW',
+      };
+    }
+    
+    console.warn('[LocationService] No native geocode results, trying online API...');
+    throw new Error('No results from native geocoder');
+    
+  } catch (error) {
+    console.error('[LocationService] Native geocode failed:', error.message);
+    
+    // Fallback to OpenStreetMap Nominatim API (free, no API key required)
+    try {
+      console.log('[LocationService] Using OpenStreetMap Nominatim as fallback...');
+      
+      const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': 'DiscoverAustralia/1.0'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('[LocationService] OSM Nominatim response:', JSON.stringify(data.address, null, 2));
+      
+      const address = data.address || {};
+      
+      // Extract city from various possible fields
+      const city = address.city ?? 
+                   address.town ?? 
+                   address.suburb ?? 
+                   address.village ?? 
+                   address.municipality ?? 
+                   'Sydney';
+      
+      // Extract suburb/district
+      const suburb = address.suburb ?? 
+                     address.neighborhood ?? 
+                     address.residential ?? 
+                     address.quarter ?? 
+                     null;
+      
+      const region = address.state ?? 'NSW';
+      
+      console.log('[LocationService] OSM geocode successful:', { city, suburb, region });
+      
+      return { city, suburb, region };
+      
+    } catch (osmError) {
+      console.error('[LocationService] OSM fallback also failed:', osmError.message);
+      
+      // Final fallback
+      console.warn('[LocationService] All geocoding methods failed, using default');
+      return { city: 'Sydney', suburb: null, region: 'NSW' };
+    }
+  }
 }
 
 // ─── Weather ──────────────────────────────────────────────────────────────────
