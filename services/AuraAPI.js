@@ -13,6 +13,45 @@ const BASE_URL = CONFIG.API_URL || 'http://10.0.2.2:8000';
 const REQUEST_TIMEOUT_MS = 15_000;
 
 /**
+ * Fetch vibe counts from the Aura Brain API.
+ *
+ * @returns {Promise<Object>} - Object with vibe labels as keys and counts as values
+ * @throws {Error}             - On network failure, timeout, or non-2xx response
+ */
+export async function fetchVibeCounts() {
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    const response = await fetch(`${BASE_URL}/api/vibes/counts`, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Aura Brain returned ${response.status}${body ? `: ${body}` : ''}`);
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out — check that the backend is running.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timerId);
+  }
+}
+
+/**
  * Fetch a personalised Sydney insider tip from the Aura Brain RAG pipeline.
  *
  * @param {string} query       - Natural-language question (e.g. "quiet café near USYD")

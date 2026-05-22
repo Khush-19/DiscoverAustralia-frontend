@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { useUser } from '../hooks/useUser';
 import { useTheme } from '../hooks/useTheme';
 import {
@@ -23,14 +23,18 @@ import {
 import { VIBES } from '../constants/vibes';
 import { ReasoningModal } from '../components/InsightCard';
 import { requestHealthPermissions, openHealthConnectSettings } from '../services/HealthService';
+import { fetchVibeCounts } from '../services/AuraAPI';
 
 // ─── Vibe Card ───────────────────────────────────────────────────────────────
 
-function VibeCard({ item }) {
+function VibeCard({ item, dynamicCount }) {
   const scale      = useRef(new Animated.Value(1)).current;
   const navigation = useNavigation();
   const { colors } = useTheme();
   const s = getStyles(colors);
+
+  // Use dynamic count if available, otherwise fall back to static spots count
+  const displayCount = dynamicCount !== undefined ? dynamicCount : item.spots;
 
   const onPressIn  = () => Animated.spring(scale, { toValue: 0.97, useNativeDriver: true, speed: 40 }).start();
   const onPressOut = () => Animated.spring(scale, { toValue: 1,    useNativeDriver: true, speed: 40 }).start();
@@ -72,7 +76,7 @@ function VibeCard({ item }) {
 
           {/* Right — spots badge */}
           <View style={[s.spotsBadge, { backgroundColor: item.spotsAlpha }]}>
-            <Text style={s.spotsCount}>{item.spots}</Text>
+            <Text style={s.spotsCount}>{displayCount}</Text>
             <Text style={s.spotsLabel}>spots</Text>
           </View>
         </LinearGradient>
@@ -126,10 +130,44 @@ function AISearchBar() {
 
 export default function VibeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
+  const [vibeCounts, setVibeCounts] = useState({});
+  const [loading, setLoading] = useState(false);
   const navigation = useNavigation();
   const { wearableStats } = useUser();
   const { colors, isDark } = useTheme();
   const s = useMemo(() => getStyles(colors), [colors]);
+
+  // Fetch vibe counts when screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+      
+      const fetchCounts = async () => {
+        if (!isActive) return;
+        
+        setLoading(true);
+        try {
+          const counts = await fetchVibeCounts();
+          if (isActive) {
+            setVibeCounts(counts);
+          }
+        } catch (error) {
+          console.error('Failed to fetch vibe counts:', error);
+          // Don't show alert for now, just log the error
+        } finally {
+          if (isActive) {
+            setLoading(false);
+          }
+        }
+      };
+
+      fetchCounts();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   // Handle Health Connect permission request
   const handleHealthConnectRequest = async () => {
@@ -217,7 +255,13 @@ export default function VibeScreen() {
         >
           {/* ── Vibe cards ──────────────────────────────────────────────── */}
           <View style={s.cardList}>
-            {VIBES.map(v => <VibeCard key={v.id} item={v} />)}
+            {VIBES.map(v => (
+              <VibeCard 
+                key={v.id} 
+                item={v} 
+                dynamicCount={vibeCounts[v.label]} 
+              />
+            ))}
           </View>
 
           <View style={{ height: 16 }} />
