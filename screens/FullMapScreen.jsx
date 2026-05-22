@@ -6,12 +6,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Animated,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ChevronLeft, Plus, Minus, Compass, MapPin, Navigation } from 'lucide-react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import { ChevronLeft, Plus, Minus, Compass, MapPin, Navigation, Star } from 'lucide-react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { useLocation } from '../hooks/useLocation';
 import { useTheme } from '../hooks/useTheme';
+import { discoveryService } from '../services/discoveryService';
 
 export default function FullMapScreen({ navigation }) {
   const {
@@ -30,13 +32,38 @@ export default function FullMapScreen({ navigation }) {
   const mapRef = useRef(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
+  // State for activities data
+  const [activities, setActivities] = useState([]);
+  const [selectedActivity, setSelectedActivity] = useState(null);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(false);
+
   // Default region: Sydney if coords aren't available yet
   const [region, setRegion] = useState({
     latitude: coords?.latitude ?? -33.8885,
     longitude: coords?.longitude ?? 151.1873,
-    latitudeDelta: 0.012,
-    longitudeDelta: 0.012,
+    latitudeDelta: 0.5,
+    longitudeDelta: 0.5,
   });
+
+  // Fetch activities on mount and when coords change
+  useEffect(() => {
+    fetchActivities();
+  }, [coords]);
+
+  const fetchActivities = async () => {
+    if (!coords) return;
+    
+    setIsLoadingActivities(true);
+    try {
+      const data = await discoveryService.getActivitiesWithin200km(coords);
+      setActivities(data);
+      console.log('[FullMapScreen] Loaded', data.length, 'activities');
+    } catch (error) {
+      console.error('[FullMapScreen] Failed to fetch activities:', error);
+    } finally {
+      setIsLoadingActivities(false);
+    }
+  };
 
   // Pulse animation for user's custom location marker
   useEffect(() => {
@@ -76,12 +103,13 @@ export default function FullMapScreen({ navigation }) {
 
   const handleRecenter = () => {
     refreshLocation();
+    fetchActivities(); // Re-fetch activities when recentering
     if (coords && mapRef.current) {
       mapRef.current.animateToRegion({
         latitude: coords.latitude,
         longitude: coords.longitude,
-        latitudeDelta: 0.012,
-        longitudeDelta: 0.012,
+        latitudeDelta: 0.5,
+        longitudeDelta: 0.5,
       }, 1000);
     }
   };
@@ -103,35 +131,7 @@ export default function FullMapScreen({ navigation }) {
 
   const lat = coords?.latitude ?? -33.8885;
   const lon = coords?.longitude ?? 151.1873;
-  const locationName = suburb ? `${suburb}, ${cityName || 'Sydney'}` : (cityName || 'Camperdown, Sydney');
-
-  // Hardcoded nearby coordinates relative to center
-  const POIS = [
-    {
-      id: 'fisher',
-      title: 'Fisher Library',
-      description: 'USYD Central Library Study Area',
-      latitude: lat - 0.001,
-      longitude: lon - 0.0015,
-      color: colors.primary,
-    },
-    {
-      id: 'cafe',
-      title: 'Victoria Park Cafe',
-      description: 'Cosy outdoor brunch and coffee',
-      latitude: lat + 0.002,
-      longitude: lon + 0.0025,
-      color: '#F59E0B',
-    },
-    {
-      id: 'gardens',
-      title: 'USYD Gardens',
-      description: 'Serene green break zones',
-      latitude: lat - 0.0025,
-      longitude: lon + 0.001,
-      color: '#10B981',
-    },
-  ];
+  const locationName = cityName || 'Sydney';
 
   return (
     <SafeAreaView style={s.container} edges={['top', 'bottom']}>
@@ -145,9 +145,9 @@ export default function FullMapScreen({ navigation }) {
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={s.headerTitleContainer}>
-          <Text style={s.headerTitle} numberOfLines={1}>Real-Time World Map</Text>
+          <Text style={s.headerTitle} numberOfLines={1}>Explore {locationName}</Text>
           <Text style={s.headerSubtitle}>
-            GPS: {lat.toFixed(5)}, {lon.toFixed(5)}
+            {activities.length} places within 200km
           </Text>
         </View>
         <TouchableOpacity
@@ -172,8 +172,6 @@ export default function FullMapScreen({ navigation }) {
           {/* Main User Position Marker */}
           <Marker
             coordinate={{ latitude: lat, longitude: lon }}
-            title="Your Location"
-            description="You are currently here"
           >
             <View style={s.userLocationContainer}>
               <Animated.View
@@ -194,19 +192,20 @@ export default function FullMapScreen({ navigation }) {
             </View>
           </Marker>
 
-          {/* Surrounding POIs */}
-          {POIS.map((poi) => (
+          {/* Activity Markers from API */}
+          {activities.map((activity) => (
             <Marker
-              key={poi.id}
-              coordinate={{ latitude: poi.latitude, longitude: poi.longitude }}
-              pinColor={poi.color}
+              key={activity.id}
+              coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
+              onPress={() => setSelectedActivity(activity)}
             >
-              <Callout tooltip>
-                <View style={s.calloutContainer}>
-                  <Text style={s.calloutTitle}>{poi.title}</Text>
-                  <Text style={s.calloutDesc}>{poi.description}</Text>
+              <View style={s.activityMarker}>
+                <Image source={{ uri: activity.img }} style={s.markerImage} />
+                <View style={s.markerRatingBadge}>
+                  <Star size={8} color="#F59E0B" fill="#F59E0B" />
+                  <Text style={s.markerRatingText}>{activity.star}</Text>
                 </View>
-              </Callout>
+              </View>
             </Marker>
           ))}
         </MapView>
@@ -224,43 +223,69 @@ export default function FullMapScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Loading overlay when refreshing */}
-        {isLoading && (
+        {/* Loading overlay when fetching activities */}
+        {isLoadingActivities && (
           <View style={s.mapLoadingOverlay}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={s.loadingText}>Locating GPS satellites...</Text>
+            <Text style={s.loadingText}>Loading nearby activities...</Text>
           </View>
         )}
       </View>
 
       {/* Floating Bottom Info Panel */}
       <View style={s.bottomPanel}>
-        <View style={s.infoRow}>
-          <MapPin size={18} color={colors.primary} strokeWidth={2.5} />
-          <View style={s.infoTextContainer}>
-            <Text style={s.infoTitle}>{locationName}</Text>
-            <Text style={s.infoSubtitle}>
-              Latitude: {lat.toFixed(5)}° · Longitude: {lon.toFixed(5)}°
-            </Text>
+        {selectedActivity ? (
+          // Show selected activity info
+          <View>
+            <View style={s.infoRow}>
+              <Image source={{ uri: selectedActivity.img }} style={s.activityImage} />
+              <View style={s.infoTextContainer}>
+                <Text style={s.infoTitle} numberOfLines={1}>{selectedActivity.name}</Text>
+                <View style={s.ratingRow}>
+                  <Star size={14} color="#F59E0B" fill="#F59E0B" />
+                  <Text style={s.ratingText}>{selectedActivity.star}</Text>
+                </View>
+              </View>
+            </View>
+            <TouchableOpacity 
+              style={s.clearSelectionBtn} 
+              onPress={() => setSelectedActivity(null)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.clearSelectionText}>Clear Selection</Text>
+            </TouchableOpacity>
           </View>
-        </View>
+        ) : (
+          // Show default location info
+          <View>
+            <View style={s.infoRow}>
+              <MapPin size={18} color={colors.primary} strokeWidth={2.5} />
+              <View style={s.infoTextContainer}>
+                <Text style={s.infoTitle}>{locationName}</Text>
+                <Text style={s.infoSubtitle}>
+                  Tap a marker to view details
+                </Text>
+              </View>
+            </View>
 
-        <View style={s.divider} />
+            <View style={s.divider} />
 
-        <View style={s.weatherRow}>
-          <View style={s.weatherInfo}>
-            <Text style={s.weatherEmojiText}>{weatherEmoji || '☀️'}</Text>
-            <View>
-              <Text style={s.weatherTemp}>
-                {temperature != null ? `${temperature}°C` : '21°C'}
-              </Text>
-              <Text style={s.weatherLabelText}>Current Weather</Text>
+            <View style={s.weatherRow}>
+              <View style={s.weatherInfo}>
+                <Text style={s.weatherEmojiText}>{weatherEmoji || '☀️'}</Text>
+                <View>
+                  <Text style={s.weatherTemp}>
+                    {temperature != null ? `${temperature}°C` : '21°C'}
+                  </Text>
+                  <Text style={s.weatherLabelText}>Current Weather</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={s.navigateActionBtn} onPress={handleRecenter} activeOpacity={0.85}>
+                <Text style={s.navigateActionText}>Recenter Map</Text>
+              </TouchableOpacity>
             </View>
           </View>
-          <TouchableOpacity style={s.navigateActionBtn} onPress={handleRecenter} activeOpacity={0.85}>
-            <Text style={s.navigateActionText}>Recenter Map</Text>
-          </TouchableOpacity>
-        </View>
+        )}
       </View>
     </SafeAreaView>
   );
@@ -356,6 +381,42 @@ function getStyles(colors, isDark) {
       borderRadius: 5,
       backgroundColor: colors.primary,
     },
+    activityMarker: {
+      width: 50,
+      height: 50,
+      borderRadius: 25,
+      overflow: 'hidden',
+      borderWidth: 2,
+      borderColor: '#fff',
+      elevation: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.3,
+      shadowRadius: 4,
+      backgroundColor: colors.surfaceLight,
+    },
+    markerImage: {
+      width: 46,
+      height: 46,
+      borderRadius: 23,
+    },
+    markerRatingBadge: {
+      position: 'absolute',
+      bottom: 2,
+      right: 2,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      borderRadius: 8,
+      paddingHorizontal: 4,
+      paddingVertical: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 2,
+    },
+    markerRatingText: {
+      color: '#fff',
+      fontSize: 9,
+      fontWeight: '700',
+    },
     calloutContainer: {
       backgroundColor: 'rgba(0,0,0,0.85)',
       borderRadius: 8,
@@ -439,6 +500,36 @@ function getStyles(colors, isDark) {
       fontSize: 18,
       fontWeight: '800',
       color: colors.text,
+      flex: 1,
+    },
+    activityImage: {
+      width: 60,
+      height: 60,
+      borderRadius: 12,
+      backgroundColor: colors.surfaceLight,
+    },
+    ratingRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+      marginTop: 4,
+    },
+    ratingText: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: colors.text,
+    },
+    clearSelectionBtn: {
+      marginTop: 12,
+      paddingVertical: 8,
+      alignItems: 'center',
+      backgroundColor: colors.surfaceLight,
+      borderRadius: 8,
+    },
+    clearSelectionText: {
+      fontSize: 12,
+      color: colors.textMuted,
+      fontWeight: '600',
     },
     infoSubtitle: {
       fontSize: 12,

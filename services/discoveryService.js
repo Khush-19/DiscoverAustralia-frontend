@@ -521,10 +521,67 @@ async function getRecommendedPlaces() {
   }
 }
 
+// ─── Get activities within 200km ─────────────────────────────────────────────
+
+async function getActivitiesWithin200km(coords) {
+  try {
+    console.log('[getActivitiesWithin200km] Fetching activities...');
+    console.log('[getActivitiesWithin200km] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/explore/activities-within-200km`;
+    console.log('[getActivitiesWithin200km] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[getActivitiesWithin200km] Token exists:', !!token);
+    
+    if (!token) {
+      throw new Error('Authentication required. Please log in.');
+    }
+    
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('[getActivitiesWithin200km] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getActivitiesWithin200km] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getActivitiesWithin200km] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getActivitiesWithin200km] Received data count:', data.length);
+    
+    // Transform API response to map marker format
+    return data.map((place, index) => ({
+      id: place.name + '-' + index,
+      name: place.name,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      star: place.star,
+      img: place.img,
+    }));
+  } catch (error) {
+    console.error('[getActivitiesWithin200km] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const discoveryService = {
   getSpotsByVibe: MOCK_MODE ? mockGetSpotsByVibe : realGetSpotsByVibe,
   getNearestPlaces,
   getRecommendedPlaces,
+  getActivitiesWithin200km,
 };
