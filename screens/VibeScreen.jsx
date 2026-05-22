@@ -74,10 +74,10 @@ function VibeCard({ item, dynamicCount }) {
             <Text style={s.vibeSub} numberOfLines={1}>{item.subtitle}</Text>
           </View>
 
-          {/* Right — spots badge */}
+          {/* Right — events badge */}
           <View style={[s.spotsBadge, { backgroundColor: item.spotsAlpha }]}>
             <Text style={s.spotsCount}>{displayCount}</Text>
-            <Text style={s.spotsLabel}>spots</Text>
+            <Text style={s.spotsLabel}>Events</Text>
           </View>
         </LinearGradient>
       </TouchableOpacity>
