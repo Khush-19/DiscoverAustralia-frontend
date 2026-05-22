@@ -13,7 +13,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
 } from 'react-native';
+
+const { height } = Dimensions.get('window');
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
@@ -24,6 +27,7 @@ import {
   ChevronRight,
   Navigation,
   Mic,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '../hooks/useTheme';
 import { useUser } from '../hooks/useUser';
@@ -155,7 +159,7 @@ function TrendingCard({ item }) {
 
 // ─── Nearby card ──────────────────────────────────────────────────────────────
 
-function NearbyCard({ item, isLast }) {
+function NearbyCard({ item, isLast, showDistance = true }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
 
@@ -184,10 +188,12 @@ function NearbyCard({ item, isLast }) {
             <Star size={11} color="#F59E0B" fill="#F59E0B" />
             <Text style={s.nearbyRatingText}>{item.rating}</Text>
           </View>
-          <View style={s.nearbyDistGroup}>
-            <Navigation size={10} color={colors.primary} strokeWidth={2.5} />
-            <Text style={s.nearbyDistText}>{item.distance}</Text>
-          </View>
+          {showDistance && (
+            <View style={s.nearbyDistGroup}>
+              <Navigation size={10} color={colors.primary} strokeWidth={2.5} />
+              <Text style={s.nearbyDistText}>{item.distance}</Text>
+            </View>
+          )}
         </View>
       </View>
     </TouchableOpacity>
@@ -329,6 +335,78 @@ function VoiceModal({ visible, onUse, onClose }) {
   );
 }
 
+// ─── Search Results Modal ─────────────────────────────────────────────────────
+
+function SearchResultsModal({ visible, onClose, results, isLoading }) {
+  const { colors, isDark } = useTheme();
+  const s = getStyles(colors, isDark);
+  const sm = getSearchModalStyles(colors, isDark);
+  const navigation = useNavigation();
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <View style={sm.searchModalRoot}>
+        {/* Tappable backdrop */}
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          onPress={onClose}
+          activeOpacity={1}
+        />
+
+        {/* Bottom sheet */}
+        <View style={sm.searchSheet}>
+          {/* Drag handle */}
+          <View style={sm.sheetHandle} />
+
+          {/* Header */}
+          <View style={sm.sheetHeader}>
+            <Text style={sm.sheetTitle}>Search Results</Text>
+            <TouchableOpacity
+              style={sm.sheetCloseBtn}
+              onPress={onClose}
+              activeOpacity={0.7}
+            >
+              <X size={18} color={colors.textMuted} strokeWidth={2.5} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Results list */}
+          {isLoading ? (
+            <View style={sm.loadingContainer}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={sm.loadingText}>Searching...</Text>
+            </View>
+          ) : results.length === 0 ? (
+            <View style={sm.emptyContainer}>
+              <Text style={sm.emptyText}>No results found</Text>
+            </View>
+          ) : (
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={sm.resultsScroll}
+            >
+              {results.map((item, i) => (
+                <NearbyCard
+                  key={item.id}
+                  item={item}
+                  isLast={i === results.length - 1}
+                  showDistance={false}
+                />
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 // ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function ExploreScreen() {
@@ -361,27 +439,39 @@ export default function ExploreScreen() {
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('All');
   const [voiceVisible, setVoiceVisible] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [isSearchingAI, setIsSearchingAI] = useState(false);
   const [aiTip, setAiTip] = useState(null);
   const [nearestPlaces, setNearestPlaces] = useState([]);
   const [isLoadingPlaces, setIsLoadingPlaces] = useState(false);
   const [recommendedPlaces, setRecommendedPlaces] = useState([]);
   const [isLoadingRecommended, setIsLoadingRecommended] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearchingState] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
 
   // Core RAG search — called from both the keyboard submit and the voice modal.
   const triggerSearch = async (searchQuery) => {
-    if (!searchQuery.trim() || isSearching) return;
-    setIsSearching(true);
-    setAiTip(null);
+    if (!searchQuery || !searchQuery.trim()) return;
+    
+    setIsSearchingState(true);
+    setSearchResults([]);
+    setShowSearchModal(true);
+    
     try {
-      const vibeLabel = vibe?.title ?? 'balanced';
-      const scaledAura = (auraScore ?? 500) / 10; // convert 0–1000 → 0–100
-      const tip = await fetchInsiderTip(searchQuery, vibeLabel, scaledAura);
-      setAiTip(tip);
+      const results = await discoveryService.searchPlaces(searchQuery);
+      setSearchResults(results);
+      // 延迟清空搜索框，确保模态框已经渲染
+      setTimeout(() => {
+        setQuery('');
+      }, 300);
     } catch (err) {
-      setAiTip(`Couldn't reach Aura Brain — ${err.message}`);
+      console.error('[ExploreScreen] Search failed:', err);
+      setSearchResults([]);
+      setTimeout(() => {
+        setQuery('');
+      }, 300);
     } finally {
-      setIsSearching(false);
+      setIsSearchingState(false);
     }
   };
 
@@ -512,56 +602,32 @@ export default function ExploreScreen() {
             <Search size={17} color={colors.primary} strokeWidth={2.2} />
             <TextInput
               style={s.searchInput}
-              placeholder="Search places, vibes..."
+              placeholder="Search places"
               placeholderTextColor={colors.textMuted}
               value={query}
               onChangeText={setQuery}
               returnKeyType="search"
               onSubmitEditing={() => triggerSearch(query)}
             />
-            <TouchableOpacity
-              onPress={() => setVoiceVisible(true)}
-              activeOpacity={0.75}
-              style={s.micBtn}
-            >
-              <Mic size={16} color={colors.textMuted} strokeWidth={2} />
-            </TouchableOpacity>
+            {query.length > 0 && (
+              <TouchableOpacity
+                onPress={() => triggerSearch(query)}
+                activeOpacity={0.75}
+                style={s.searchSubmitBtn}
+              >
+                <Text style={s.searchSubmitText}>Search</Text>
+              </TouchableOpacity>
+            )}
           </View>
-          <TouchableOpacity style={s.filterBtn} activeOpacity={0.8}>
-            <SlidersHorizontal size={17} color="#000" strokeWidth={2.5} />
-          </TouchableOpacity>
         </View>
 
-        {/* ── Filter pills ─────────────────────────────────────────────────── */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.filtersScroll}
-          style={s.filtersContainer}
-        >
-          {FILTERS.map(f => {
-            const active = activeFilter === f.id;
-            return (
-              <TouchableOpacity
-                key={f.id}
-                onPress={() => setActiveFilter(f.id)}
-                activeOpacity={0.75}
-                style={[s.filterPill, active && s.filterPillActive]}
-              >
-                <Text style={s.filterEmoji}>{f.emoji}</Text>
-                <Text style={[s.filterLabel, active && s.filterLabelActive]}>
-                  {f.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
+
 
         {/* ── Aura Insider tip ─────────────────────────────────────────────── */}
-        {(isSearching || aiTip) && (
+        {(isSearchingAI || aiTip) && (
           <InsiderTipCard
             tip={aiTip}
-            isLoading={isSearching}
+            isLoading={isSearchingAI}
             onDismiss={handleDismissTip}
           />
         )}
@@ -623,6 +689,13 @@ export default function ExploreScreen() {
         onUse={handleVoiceUse}
         onClose={() => setVoiceVisible(false)}
       />
+
+      <SearchResultsModal
+        visible={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        results={searchResults}
+        isLoading={isSearching}
+      />
     </SafeAreaView>
   );
 }
@@ -679,6 +752,18 @@ const getStyles = (colors = {}, isDark = false) => StyleSheet.create({
     color: colors.text,
     fontWeight: '500',
     padding: 0,
+  },
+  searchSubmitBtn: {
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginLeft: 8,
+  },
+  searchSubmitText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#000',
   },
   micBtn: { padding: 4 },
   filterBtn: {
@@ -1124,5 +1209,70 @@ const getVoiceStyles = (colors = {}, isDark = false) => StyleSheet.create({
     fontSize: 14,
     color: colors.textMuted,
     fontWeight: '600',
+  },
+});
+
+// ─── Search Results Modal Styles ──────────────────────────────────────────────
+
+const getSearchModalStyles = (colors = {}, isDark = false) => StyleSheet.create({
+  searchModalRoot: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  searchSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: height * 0.6,
+    paddingBottom: 20,
+  },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.border,
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginVertical: 12,
+  },
+  sheetHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  sheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: colors.text,
+  },
+  sheetCloseBtn: {
+    padding: 4,
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    fontWeight: '500',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: '500',
+  },
+  resultsScroll: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
 });

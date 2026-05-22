@@ -146,8 +146,8 @@ export async function reverseGeocode({ latitude, longitude }) {
       };
     }
     
-    console.warn('[LocationService] No native geocode results, trying online API...');
-    throw new Error('No results from native geocoder');
+    console.log('[LocationService] No native geocode results, trying online API...');
+    // Silently fall through to online API without throwing error
     
   } catch (error) {
     // Check if this is a permission/native module error (common in Expo Go)
@@ -157,9 +157,8 @@ export async function reverseGeocode({ latitude, longitude }) {
     
     if (isNativeModuleError) {
       console.log('[LocationService] Native geocoder not available (expected in Expo Go). Using fallback API...');
-    } else {
-      console.error('[LocationService] Native geocode failed:', error.message);
     }
+    // Silently continue to fallback - no error logging for "No results from native geocoder"
     
     // Fallback to OpenStreetMap Nominatim API (free, no API key required)
     try {
@@ -204,10 +203,7 @@ export async function reverseGeocode({ latitude, longitude }) {
       return { city, suburb, region };
       
     } catch (osmError) {
-      console.error('[LocationService] OSM fallback also failed:', osmError.message);
-      
-      // Final fallback
-      console.warn('[LocationService] All geocoding methods failed, using default');
+      // Silently use default location - no error popup
       return { city: 'Sydney', suburb: null, region: 'NSW' };
     }
   }

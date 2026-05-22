@@ -577,6 +577,69 @@ async function getActivitiesWithin200km(coords) {
   }
 }
 
+// ─── Search places by keyword ────────────────────────────────────────────────
+
+async function searchPlaces(keyword) {
+  try {
+    console.log('[searchPlaces] Searching for:', keyword);
+    console.log('[searchPlaces] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/explore/search`;
+    console.log('[searchPlaces] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[searchPlaces] Token exists:', !!token);
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        keyword: keyword
+      })
+    });
+    
+    console.log('[searchPlaces] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[searchPlaces] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[searchPlaces] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[searchPlaces] Received data count:', data.length);
+    
+    // Transform API response to match the expected format
+    return data.map(place => ({
+      id: place.id,
+      title: place.name,
+      category: place.tag,
+      rating: place.star,
+      distance: place.distanceKm ? `${place.distanceKm.toFixed(2)}km` : 'N/A',
+      badge: place.tag,
+      badgeColor: '#10B981', // Green for tags
+      image: place.img,
+      description: place.description,
+      important_info: place.important_info,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    }));
+  } catch (error) {
+    console.error('[searchPlaces] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const discoveryService = {
@@ -584,4 +647,5 @@ export const discoveryService = {
   getNearestPlaces,
   getRecommendedPlaces,
   getActivitiesWithin200km,
+  searchPlaces,
 };

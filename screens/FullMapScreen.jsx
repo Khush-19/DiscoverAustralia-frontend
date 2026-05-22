@@ -15,7 +15,9 @@ import { useLocation } from '../hooks/useLocation';
 import { useTheme } from '../hooks/useTheme';
 import { discoveryService } from '../services/discoveryService';
 
-export default function FullMapScreen({ navigation }) {
+export default function FullMapScreen({ navigation, route }) {
+  const { focusLocation } = route.params || {};
+  
   const {
     coords,
     cityName,
@@ -44,6 +46,20 @@ export default function FullMapScreen({ navigation }) {
     latitudeDelta: 0.5,
     longitudeDelta: 0.5,
   });
+
+  // Focus on specific location if provided
+  useEffect(() => {
+    if (focusLocation && mapRef.current) {
+      const focusedRegion = {
+        latitude: focusLocation.latitude,
+        longitude: focusLocation.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(focusedRegion);
+      mapRef.current.animateToRegion(focusedRegion, 800);
+    }
+  }, [focusLocation]);
 
   // Fetch activities on mount and when coords change
   useEffect(() => {
@@ -145,9 +161,11 @@ export default function FullMapScreen({ navigation }) {
           <ChevronLeft size={22} color={colors.text} />
         </TouchableOpacity>
         <View style={s.headerTitleContainer}>
-          <Text style={s.headerTitle} numberOfLines={1}>Explore {locationName}</Text>
+          <Text style={s.headerTitle} numberOfLines={1}>
+            {focusLocation ? focusLocation.title : `Explore ${locationName}`}
+          </Text>
           <Text style={s.headerSubtitle}>
-            {activities.length} places within 200km
+            {focusLocation ? 'Activity Location' : `${activities.length} places within 200km`}
           </Text>
         </View>
         <TouchableOpacity
@@ -192,8 +210,8 @@ export default function FullMapScreen({ navigation }) {
             </View>
           </Marker>
 
-          {/* Activity Markers from API */}
-          {activities.map((activity) => (
+          {/* Activity Markers from API - Only show if no focusLocation */}
+          {!focusLocation && activities.map((activity) => (
             <Marker
               key={activity.id}
               coordinate={{ latitude: activity.latitude, longitude: activity.longitude }}
@@ -210,6 +228,18 @@ export default function FullMapScreen({ navigation }) {
               </View>
             </Marker>
           ))}
+
+          {/* Focused Location Marker */}
+          {focusLocation && (
+            <Marker
+              coordinate={{ latitude: focusLocation.latitude, longitude: focusLocation.longitude }}
+              anchor={{ x: 0.5, y: 0.5 }}
+            >
+              <View style={s.focusedMarkerContainer}>
+                <View style={s.focusedMarkerPin} />
+              </View>
+            </Marker>
+          )}
         </MapView>
 
         {/* Floating Zoom & Locate Controls */}
@@ -411,6 +441,24 @@ function getStyles(colors, isDark) {
       color: '#fff',
       fontSize: 9,
       fontWeight: '700',
+    },
+    focusedMarkerContainer: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: 'rgba(45,212,191,0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderWidth: 2,
+      borderColor: colors.primary,
+    },
+    focusedMarkerPin: {
+      width: 16,
+      height: 16,
+      borderRadius: 8,
+      backgroundColor: colors.primary,
+      borderWidth: 2,
+      borderColor: '#fff',
     },
     calloutContainer: {
       backgroundColor: 'rgba(0,0,0,0.85)',

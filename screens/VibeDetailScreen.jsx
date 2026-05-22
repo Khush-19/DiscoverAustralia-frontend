@@ -18,7 +18,7 @@ import { fetchActivitiesByKind } from '../services/AuraAPI';
 // ─── Activity Card Component ────────────────────────────────────────────────
 // Displays activities from the new API
 
-function ActivityCard({ activity }) {
+function ActivityCard({ activity, navigation }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
 
@@ -32,6 +32,47 @@ function ActivityCard({ activity }) {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const handleViewDetails = () => {
+    // Get the activity ID - should be a MongoDB ObjectId string
+    let idToPass = null;
+    
+    // First try to get the _id field which is typically the MongoDB ObjectId
+    if (activity._id) {
+      idToPass = typeof activity._id === 'string' ? activity._id : String(activity._id);
+    } 
+    // Fallback to idString field (new API format)
+    else if (activity.idString) {
+      idToPass = typeof activity.idString === 'string' ? activity.idString : String(activity.idString);
+    }
+    // Fallback to activityId or id field
+    else if (activity.activityId) {
+      idToPass = typeof activity.activityId === 'string' ? activity.activityId : String(activity.activityId);
+    } 
+    else if (activity.id) {
+      idToPass = typeof activity.id === 'string' ? activity.id : String(activity.id);
+    }
+    
+    console.log('[VibeDetail] Raw activity data:', JSON.stringify(activity, null, 2));
+    console.log('[VibeDetail] Extracted ID to pass:', idToPass);
+    console.log('[VibeDetail] ID type:', typeof idToPass);
+    
+    if (idToPass && idToPass.length === 24 && /^[0-9a-fA-F]{24}$/.test(idToPass)) {
+      // Valid MongoDB ObjectId format
+      console.log('[VibeDetail] Valid MongoDB ObjectId format:', idToPass);
+      navigation.navigate('ActivityDetail', { 
+        activityId: idToPass
+      });
+    } else if (idToPass) {
+      // If we have an ID but it's not in the expected format, still try to pass it
+      console.warn('[VibeDetail] ID may not be in valid MongoDB ObjectId format:', idToPass);
+      navigation.navigate('ActivityDetail', { 
+        activityId: idToPass
+      });
+    } else {
+      console.error('[VibeDetail] No activityId found!', activity);
+    }
   };
 
   return (
@@ -54,19 +95,13 @@ function ActivityCard({ activity }) {
           <View style={s.activityBottom}>
             <View style={s.activityInfo}>
               <Text style={s.activityTitle} numberOfLines={2}>{activity.title}</Text>
-              
-              {/* Time info */}
-              <View style={s.activityTimeRow}>
-                <Text style={s.activityTimeLabel}>Start:</Text>
-                <Text style={s.activityTimeValue}>{formatTime(activity.start_time)}</Text>
-              </View>
-              <View style={s.activityTimeRow}>
-                <Text style={s.activityTimeLabel}>End:</Text>
-                <Text style={s.activityTimeValue}>{formatTime(activity.end_time)}</Text>
-              </View>
             </View>
 
-            <TouchableOpacity style={s.detailBtn} activeOpacity={0.85}>
+            <TouchableOpacity 
+              style={s.detailBtn} 
+              activeOpacity={0.85}
+              onPress={handleViewDetails}
+            >
               <Text style={s.detailBtnText}>View Details</Text>
             </TouchableOpacity>
           </View>
@@ -158,8 +193,9 @@ export default function VibeDetailScreen({ route, navigation }) {
           <View style={s.activitiesList}>
             {activities.map((activity, index) => (
               <ActivityCard 
-                key={activity.id?.timestamp || index} 
-                activity={activity} 
+                key={activity._id || activity.idString || activity.activityId || activity.id || index} 
+                activity={activity}
+                navigation={navigation}
               />
             ))}
           </View>

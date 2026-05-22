@@ -10,12 +10,14 @@ import LocationDetailScreen from '../screens/LocationDetailScreen';
 import LoginScreen from '../screens/auth/LoginScreen';
 import RegisterScreen from '../screens/auth/RegisterScreen';
 import FullMapScreen from '../screens/FullMapScreen';
+import ActivityLocationMapScreen from '../screens/ActivityLocationMapScreen';
 import NotificationSettingsScreen from '../screens/NotificationSettingsScreen';
 import MessagesScreen from '../screens/MessagesScreen';
 import ThemeSettingsScreen from '../screens/ThemeSettingsScreen';
 import PersonalizedRecommendationSettingsScreen from '../screens/PersonalizedRecommendationSettingsScreen';
 import HelpScreen from '../screens/HelpScreen';
 import VibeDetailScreen from '../screens/VibeDetailScreen';
+import ActivityDetailScreen from '../screens/ActivityDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -74,6 +76,12 @@ function AppStack() {
       />
       <Stack.Screen name="VibeDetail" component={VibeDetailScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="ActivityDetail" component={ActivityDetailScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="ActivityLocationMap" component={ActivityLocationMapScreen}
+        options={{ animation: 'slide_from_bottom', animationDuration: 280 }}
       />
     </Stack.Navigator>
   );
