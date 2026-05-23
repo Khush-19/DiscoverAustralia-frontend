@@ -69,14 +69,9 @@ export default function HomeScreen({ navigation }) {
   const [isLoadingActivity, setIsLoadingActivity] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch hot activity on mount and auto-refresh every 30 seconds
+  // Fetch hot activity on mount
   useEffect(() => {
     fetchHotActivity();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchHotActivity, 30000);
-    
-    return () => clearInterval(interval);
   }, []);
 
   const fetchHotActivity = async () => {
