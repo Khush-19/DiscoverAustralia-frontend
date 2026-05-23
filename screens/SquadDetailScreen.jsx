@@ -62,6 +62,13 @@ export default function SquadDetailScreen({ route, navigation }) {
     member => member.email === user.email
   );
 
+  const handleChatPress = () => {
+    navigation.navigate('SquadChat', {
+      squadId: squadId,
+      squadTitle: squad.name,
+    });
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={s.screen} edges={['top']}>
@@ -189,7 +196,7 @@ export default function SquadDetailScreen({ route, navigation }) {
       <View style={s.bottomActions}>
         {isMember ? (
           <>
-            <TouchableOpacity style={s.chatButton} activeOpacity={0.8}>
+            <TouchableOpacity style={s.chatButton} activeOpacity={0.8} onPress={handleChatPress}>
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
                 start={{ x: 0, y: 0 }}

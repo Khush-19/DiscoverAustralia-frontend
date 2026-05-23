@@ -357,6 +357,74 @@ async function realJoinVibe(squadId) {
   }
 }
 
+/**
+ * Send a chat message to squad
+ * Matches Java: POST /api/squad/chat
+ * @param {string} squadId - The ID of the squad
+ * @param {string} message - The message content
+ */
+async function realSendChatMessage(squadId, message) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  const url = `${BASE_URL}/api/squad/chat`;
+  console.log('=== Send Chat Message API Request ===');
+  console.log('Request URL:', url);
+  console.log('Request Method: POST');
+  console.log('Request Body:', JSON.stringify({ squadId, message }, null, 2));
+  console.log('================================');
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ squadId, message }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Failed to send message');
+  return data;
+}
+
+/**
+ * Fetch chat history for a squad
+ * Matches Java: POST /api/squad/chat/list
+ * Returns all chat messages for the squad, sorted by creation time (ascending)
+ * @param {string} squadId - The ID of the squad
+ * @returns {Array} List of SquadChat objects sorted by createdAt (oldest first)
+ */
+async function realFetchSquadChatHistory(squadId) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  const url = `${BASE_URL}/api/squad/chat/list`;
+  console.log('=== Fetch Squad Chat History API Request ===');
+  console.log('Request URL:', url);
+  console.log('Request Method: POST');
+  console.log('Request Body:', JSON.stringify({ squadId }, null, 2));
+  console.log('================================');
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ squadId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Failed to fetch chat history');
+  
+  // Ensure messages are sorted by creation time (ascending - oldest first)
+  const messages = Array.isArray(data) ? data : data.messages || [];
+  return messages.sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime();
+    const timeB = new Date(b.createdAt).getTime();
+    return timeA - timeB;
+  });
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const squadService = {
@@ -380,4 +448,10 @@ export const squadService = {
   
   // Get a random unjoined squad for home page
   getRandomUnjoinedSquad: getRandomUnjoinedSquad,
+  
+  // Send chat message
+  sendChatMessage: realSendChatMessage,
+  
+  // Fetch chat history for a squad
+  fetchSquadChatHistory: realFetchSquadChatHistory,
 };

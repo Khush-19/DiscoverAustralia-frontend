@@ -104,7 +104,17 @@ export default function RandomSquadRecommendation({ navigation }) {
   }
 
   if (error || !randomSquad) {
-    return null; // Don't show anything if there's an error or no squads
+    return (
+      <View style={s.card}>
+        <View style={s.emptyContainer}>
+          <Text style={s.emptyIcon}>🔍</Text>
+          <Text style={s.emptyTitle}>No Recommendations Available</Text>
+          <Text style={s.emptySubtitle}>
+            {error ? 'Unable to load recommendations' : 'You have joined all available squads or there are no squads to recommend'}
+          </Text>
+        </View>
+      </View>
+    );
   }
 
   // Get first 2 tags
@@ -269,5 +279,28 @@ const getStyles = (colors) => StyleSheet.create({
     fontSize: 12,
     color: colors.textSecondary,
     fontWeight: '600',
+  },
+  emptyContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  emptyIcon: {
+    fontSize: 40,
+    marginBottom: 12,
+  },
+  emptyTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });
