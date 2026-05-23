@@ -87,10 +87,17 @@ function VibeCard({ item, dynamicCount }) {
 
 // ─── AI Search Bar ────────────────────────────────────────────────────────────
 
-function AISearchBar() {
+function AISearchBar({ navigation }) {
   const [query, setQuery] = useState('');
   const { colors, isDark } = useTheme();
   const s = getStyles(colors);
+
+  const handleSearch = () => {
+    if (query.trim().length > 0) {
+      navigation.navigate('SearchResults', { keyword: query.trim() });
+      setQuery(''); // Clear the input after search
+    }
+  };
 
   return (
     <View style={s.searchWrapper}>
@@ -102,7 +109,8 @@ function AISearchBar() {
           placeholderTextColor={colors.textMuted}
           value={query}
           onChangeText={setQuery}
-          returnKeyType="send"
+          returnKeyType="search"
+          onSubmitEditing={handleSearch}
           multiline={false}
         />
       </View>
@@ -229,7 +237,7 @@ export default function VibeScreen() {
       </View>
 
       {/* ── AI Search bar ─────────────────────────────────────────────── */}
-      <AISearchBar />
+      <AISearchBar navigation={navigation} />
 
       {/* ── Scrollable list ────────────────────────────────────────────── */}
       <KeyboardAvoidingView

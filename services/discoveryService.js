@@ -653,6 +653,55 @@ async function searchPlaces(keyword) {
   }
 }
 
+// ─── Search activities by keyword ────────────────────────────────────────────
+
+async function searchActivities(keyword) {
+  try {
+    console.log('[searchActivities] Searching for:', keyword);
+    console.log('[searchActivities] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/vibes/search`;
+    console.log('[searchActivities] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[searchActivities] Token exists:', !!token);
+    
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        keyword: keyword
+      })
+    });
+    
+    console.log('[searchActivities] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[searchActivities] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[searchActivities] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[searchActivities] Received data count:', data.length);
+    
+    return data;
+  } catch (error) {
+    console.error('[searchActivities] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Get place detail by ID ──────────────────────────────────────────────────
 
 async function getPlaceDetail(placeId) {
@@ -789,6 +838,7 @@ export const discoveryService = {
   getRecommendedPlaces,
   getActivitiesWithin200km,
   searchPlaces,
+  searchActivities,
   getPlaceDetail,
   getHotActivity,
 };

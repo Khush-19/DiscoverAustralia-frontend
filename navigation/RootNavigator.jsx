@@ -19,6 +19,7 @@ import HelpScreen from '../screens/HelpScreen';
 import VibeDetailScreen from '../screens/VibeDetailScreen';
 import ActivityDetailScreen from '../screens/ActivityDetailScreen';
 import PlaceDetailScreen from '../screens/PlaceDetailScreen';
+import SearchResultsScreen from '../screens/SearchResultsScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -85,6 +86,9 @@ function AppStack() {
         options={{ animation: 'slide_from_bottom', animationDuration: 280 }}
       />
       <Stack.Screen name="PlaceDetail" component={PlaceDetailScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="SearchResults" component={SearchResultsScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>
