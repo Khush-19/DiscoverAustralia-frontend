@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo } from 'react';
+import { useRef, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Animated,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -131,12 +132,16 @@ function getRandomTags(tags = [], count = 2) {
 
 // ─── Active squad card ────────────────────────────────────────────────────────
 
-function ActiveSquadCard({ item }) {
+function ActiveSquadCard({ item, userEmail }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const { isSquadJoined } = useUser();
   const { joinSquad } = useSquad();
-  const joined = isSquadJoined(item.id || item.eventId);
+  
+  // Check if user is already a member by email
+  const isMember = userEmail && Array.isArray(item.memberUserIds) && 
+                   item.memberUserIds.includes(userEmail);
+  const joined = isSquadJoined(item.id || item.eventId) || isMember;
   
   // Derive member count from memberUserIds array or use provided memberCount
   const memberCount = item.memberCount ?? (item.memberUserIds?.length) ?? 0;
@@ -275,10 +280,11 @@ function SectionHeader({ children, right }) {
 
 export default function SquadsScreen() {
   const { colors, isDark }  = useTheme();
-  const { nearbySquads, allSquads, isLoading } = useSquad();
+  const { nearbySquads, allSquads, isLoading, fetchAllSquads } = useSquad();
   const { user } = useUser();
   const navigation = useNavigation();
   const s = useMemo(() => getStyles(colors), [colors]);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Filter squads based on alive status and user membership
   const activeSquads = useMemo(() => {
@@ -301,11 +307,31 @@ export default function SquadsScreen() {
     navigation.navigate('CreateSquad');
   };
 
+  // Pull-to-refresh handler
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchAllSquads();
+    } catch (error) {
+      console.error('Failed to refresh squads:', error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   return (
     <SafeAreaView style={s.screen} edges={['top']}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
       >
 
         {/* ── Page header ──────────────────────────────────────────────────── */}
@@ -342,25 +368,30 @@ export default function SquadsScreen() {
           <View style={s.cardList}>
             {activeSquads.map((squad, index) => {
               const randomTags = getRandomTags(squad.tags, 2);
+              const currentUserEmail = user?.email;
               return (
-                <ActiveSquadCard key={squad.id || `squad-${index}`} item={{
-                  id: squad.id,
-                  eventId: squad.id,
-                  title: squad.name,
-                  subtitle: squad.subtitle,
-                  category: randomTags[0] || 'Squad',
-                  tagColor: '#06B6D4',
-                  memberUserIds: (squad.members || []).map(m => m.email),
-                  memberCount: squad.members?.length || 0,
-                  spotName: 'Location TBD',
-                  eta: 'Unknown',
-                  memberAvatars: (squad.members || []).slice(0, 3).map((member, i) => ({
-                    initials: member.nickname ? member.nickname.substring(0, 2).toUpperCase() : member.email.substring(0, 2).toUpperCase(),
-                    color: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'][i % 5]
-                  })),
-                  icebreaker: null,
-                  randomTags: randomTags
-                }} />
+                <ActiveSquadCard 
+                  key={squad.id || `squad-${index}`} 
+                  item={{
+                    id: squad.id,
+                    eventId: squad.id,
+                    title: squad.name,
+                    subtitle: squad.subtitle,
+                    category: randomTags[0] || 'Squad',
+                    tagColor: '#06B6D4',
+                    memberUserIds: (squad.members || []).map(m => m.email),
+                    memberCount: squad.members?.length || 0,
+                    spotName: 'Location TBD',
+                    eta: 'Unknown',
+                    memberAvatars: (squad.members || []).slice(0, 3).map((member, i) => ({
+                      initials: member.nickname ? member.nickname.substring(0, 2).toUpperCase() : member.email.substring(0, 2).toUpperCase(),
+                      color: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'][i % 5]
+                    })),
+                    icebreaker: null,
+                    randomTags: randomTags
+                  }}
+                  userEmail={currentUserEmail}
+                />
               );
             })}
           </View>
