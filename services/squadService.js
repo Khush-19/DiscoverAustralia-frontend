@@ -260,6 +260,103 @@ async function realFetchSquadDetail(squadId) {
   return data;
 }
 
+/**
+ * Get a random squad that user hasn't joined yet
+ * Uses the same API as Squads page: GET /api/squad/all
+ * @returns {Object|null} A random squad object or null if none available
+ */
+async function getRandomUnjoinedSquad() {
+  try {
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    
+    const url = `${BASE_URL}/api/squad/all`;
+    console.log('=== Get Random Unjoined Squad API Request ===');
+    console.log('Request URL:', url);
+    console.log('Request Method: GET');
+    console.log('================================');
+    
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+    });
+
+    const allSquads = await res.json();
+    if (!res.ok) throw new Error(allSquads.message ?? 'Failed to fetch squads');
+    
+    // Filter out squads where user is already a member
+    // Note: We'll need user email from the calling context to filter properly
+    // For now, return all active squads and let the UI layer handle filtering
+    const activeSquads = allSquads.filter(squad => squad.alive === true);
+    
+    if (activeSquads.length === 0) {
+      return null;
+    }
+    
+    // Randomly select one squad
+    const randomIndex = Math.floor(Math.random() * activeSquads.length);
+    return activeSquads[randomIndex];
+  } catch (error) {
+    console.error('Failed to get random unjoined squad:', error);
+    throw error;
+  }
+}
+
+/**
+ * Join a squad
+ * Matches Java: POST /api/squad/join
+ * Automatically validates user identity from JWT token and adds email to participants list
+ * @param {string} squadId - The ID of the squad to join
+ */
+async function realJoinVibe(squadId) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  console.log('=== Join Squad API Request ===');
+  console.log('Squad ID:', squadId);
+  console.log('JWT Token:', token ? '***' + token.slice(-10) : 'MISSING');
+  
+  const url = `${BASE_URL}/api/squad/join`;
+  console.log('Request URL:', url);
+  console.log('Request Method: POST');
+  
+  const requestBody = { squadId };
+  console.log('Request Body:', JSON.stringify(requestBody, null, 2));
+  console.log('================================');
+  
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    console.log('Response Status:', res.status);
+    console.log('Response OK:', res.ok);
+    
+    const data = await res.json();
+    console.log('Response Data:', JSON.stringify(data, null, 2));
+    
+    if (!res.ok) {
+      console.error('API Error Response:', data);
+      throw new Error(data.message ?? 'Failed to join squad');
+    }
+    
+    console.log('Successfully joined squad!');
+    return data;
+  } catch (error) {
+    console.error('=== Join Squad API Error ===');
+    console.error('Error Message:', error.message);
+    console.error('Error Stack:', error.stack);
+    console.error('================================');
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const squadService = {
@@ -277,4 +374,10 @@ export const squadService = {
   
   // Fetch squad detail
   fetchSquadDetail: realFetchSquadDetail,
+  
+  // Join a vibe/activity
+  joinVibe: realJoinVibe,
+  
+  // Get a random unjoined squad for home page
+  getRandomUnjoinedSquad: getRandomUnjoinedSquad,
 };

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useRef, useState, useCallback } from 'react';
+import { Alert } from 'react-native';
 import { squadService } from '../services/squadService';
 import { useUser } from '../hooks/useUser';
 import { useLocation } from '../hooks/useLocation';
@@ -154,6 +155,97 @@ export function SquadProvider({ children }) {
     setMySquad(null); // Real-world: You'd want an API call here to remove the user from the DB array
   }, []);
 
+  // Join a squad with confirmation dialog
+  const joinVibeWithConfirmation = useCallback(async (squadId) => {
+    console.log('=== joinVibeWithConfirmation Called ===');
+    console.log('Squad ID:', squadId);
+    console.log('Current User:', user);
+    console.log('=====================================');
+    
+    return new Promise((resolve, reject) => {
+      Alert.alert(
+        'Join Squad',
+        'Are you sure you want to join this squad?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+            onPress: () => {
+              console.log('User cancelled joining squad');
+              resolve(false);
+            },
+          },
+          {
+            text: 'Join',
+            onPress: async () => {
+              console.log('User confirmed joining squad');
+              try {
+                setIsLoading(true);
+                console.log('Calling squadService.joinVibe...');
+                const result = await squadService.joinVibe(squadId);
+                
+                console.log('API call successful, updating state...');
+                console.log('Result:', result);
+                
+                // Update nearby squads list
+                setNearbySquads(prev => {
+                  const updated = prev.map(squad => {
+                    if (squad.id === squadId || squad.eventId === squadId) {
+                      console.log('Updating nearby squad:', squad.id);
+                      return {
+                        ...squad,
+                        memberCount: (squad.memberCount || 0) + 1,
+                        memberUserIds: [...(squad.memberUserIds || []), user?.email],
+                      };
+                    }
+                    return squad;
+                  });
+                  return updated;
+                });
+
+                // Also update allSquads
+                setAllSquads(prev => {
+                  const updated = prev.map(squad => {
+                    if (squad.id === squadId) {
+                      console.log('Updating allSquads:', squad.id);
+                      return {
+                        ...squad,
+                        members: [...(squad.members || []), { email: user?.email }],
+                      };
+                    }
+                    return squad;
+                  });
+                  return updated;
+                });
+
+                console.log('State updated successfully');
+                setError(null);
+                
+                // Refresh the squads list to get the latest data from backend
+                console.log('Refreshing squads list...');
+                await fetchAllSquads();
+                console.log('Squads list refreshed');
+                
+                resolve(result);
+              } catch (err) {
+                console.error('=== Failed to join squad ===');
+                console.error('Error:', err);
+                console.error('Error Message:', err.message);
+                console.error('================================');
+                setError(err.message ?? 'Could not join squad.');
+                reject(err);
+              } finally {
+                setIsLoading(false);
+                console.log('Loading state set to false');
+              }
+            },
+          },
+        ],
+        { cancelable: true }
+      );
+    });
+  }, [user, fetchAllSquads]);
+
   return (
     <SquadContext.Provider
       value={{
@@ -168,6 +260,7 @@ export function SquadProvider({ children }) {
         createSquad,
         createSquadWithDetails,
         leaveSquad,
+        joinVibeWithConfirmation,
       }}
     >
       {children}

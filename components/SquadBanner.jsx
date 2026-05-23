@@ -87,7 +87,7 @@ function AvatarRow({ avatars, extra, cardBg }) {
  *   joined      → shows Joined chip + Chat button
  */
 export default function SquadBanner() {
-  const { nearbySquads, mySquad, joinSquad } = useSquad();
+  const { nearbySquads, mySquad, joinVibeWithConfirmation } = useSquad();
   const { colors, isDark } = useTheme();
   const s = getStyles(colors, isDark);
 
@@ -101,6 +101,19 @@ export default function SquadBanner() {
   function handleChat() {
     // Navigation stub — wire to SquadChat screen when ready
     console.log('Navigating to Squad Chat:', featured.id, featured.title);
+  }
+
+  async function handleJoin() {
+    console.log('=== SquadBanner Handle Join ===');
+    console.log('Featured Squad ID:', featured.id);
+    console.log('Featured Squad Title:', featured.title);
+    console.log('===============================');
+    try {
+      await joinVibeWithConfirmation(featured.id);
+      console.log('Successfully joined squad from banner!');
+    } catch (error) {
+      console.error('Failed to join squad from banner:', error);
+    }
   }
 
   return (
@@ -175,7 +188,7 @@ export default function SquadBanner() {
           // ── Default state: Join button
           <TouchableOpacity
             style={s.joinBtn}
-            onPress={() => joinSquad(featured.id)}
+            onPress={handleJoin}
             activeOpacity={0.85}
           >
             <LinearGradient

@@ -21,6 +21,7 @@ import LocationBanner from '../components/LocationBanner';
 import VibePicker from '../components/VibePicker';
 import SpotCard from '../components/SpotCard';
 import SquadBanner from '../components/SquadBanner';
+import RandomSquadRecommendation from '../components/RandomSquadRecommendation';
 import useFadeIn from '../hooks/useFadeIn';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
 import { discoveryService } from '../services/discoveryService';
@@ -255,6 +256,12 @@ export default function HomeScreen({ navigation }) {
           <View style={s.section}>
             <SectionHeader title="🔥 Trending Squad Today" onSeeAll={() => navigation.navigate('Squads')} />
             <SquadBanner />
+          </View>
+
+          {/* ── Recommended Squad For You ───────────────────────────────────── */}
+          <View style={s.section}>
+            <SectionHeader title="💡 Recommended For You" onSeeAll={() => navigation.navigate('Squads')} />
+            <RandomSquadRecommendation navigation={navigation} />
           </View>
 
           <View style={{ height: 24 }} />

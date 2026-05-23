@@ -1,4 +1,4 @@
-import { useRef, useEffect, useMemo, useState } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import {
   Plus,
   CalendarDays,
@@ -136,7 +136,7 @@ function ActiveSquadCard({ item, userEmail, navigation }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const { isSquadJoined } = useUser();
-  const { joinSquad } = useSquad();
+  const { joinVibeWithConfirmation } = useSquad();
   
   // Check if user is already a member by email
   const isMember = userEmail && Array.isArray(item.memberUserIds) && 
@@ -146,6 +146,20 @@ function ActiveSquadCard({ item, userEmail, navigation }) {
   const handleCardPress = () => {
     if (navigation) {
       navigation.navigate('SquadDetail', { squadId: item.id });
+    }
+  };
+  
+  const handleJoinPress = async () => {
+    console.log('=== Handle Join Press ===');
+    console.log('Squad ID:', item.id);
+    console.log('Event ID:', item.eventId);
+    console.log('User Email:', userEmail);
+    console.log('=========================');
+    try {
+      await joinVibeWithConfirmation(item.id || item.eventId);
+      console.log('Successfully joined squad!');
+    } catch (error) {
+      console.error('Failed to join squad:', error);
     }
   };
   
@@ -223,7 +237,7 @@ function ActiveSquadCard({ item, userEmail, navigation }) {
             <TouchableOpacity
               style={s.joinSquadBtn}
               activeOpacity={0.82}
-              onPress={() => joinSquad(item.id || item.eventId)}
+              onPress={handleJoinPress}
             >
               <LinearGradient
                 colors={[colors.primary, colors.primaryDark]}
@@ -293,6 +307,17 @@ export default function SquadsScreen() {
   const navigation = useNavigation();
   const s = useMemo(() => getStyles(colors), [colors]);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Auto-refresh when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('=== Squads Screen Focused ===');
+      console.log('Auto-refreshing squads list...');
+      fetchAllSquads();
+      console.log('Squads list refresh triggered');
+      console.log('=============================');
+    }, [fetchAllSquads])
+  );
 
   // Filter squads based on alive status and user membership
   const activeSquads = useMemo(() => {
