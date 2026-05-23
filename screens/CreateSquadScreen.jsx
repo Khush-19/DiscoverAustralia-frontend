@@ -225,9 +225,8 @@ export default function CreateSquadScreen({ route }) {
         name: name.trim(),
         subtitle: subtitle.trim(),
         alive: true,
-        numbers: [user.email], // Auto-populated from JWT token email
         tags: selectedTags,
-        activities: selectedActivities,
+        activities: selectedActivities.map(activity => activity.idString || activity._id || activity.id),
       };
 
       console.log('=== Create Squad API Request ===');

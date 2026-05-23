@@ -1,8 +1,10 @@
 import CONFIG from '../constants/config';
 import * as SecureStore from 'expo-secure-store';
 
-const BASE_URL = CONFIG.API_URL || 'http://10.0.2.2:8000';
-const MOCK_MODE = true;
+const BASE_URL = CONFIG.API_URL || 'http://192.168.1.104:8080';
+const MOCK_MODE = false;
+
+console.log('SquadService BASE_URL:', BASE_URL);
 
 // ─── Mock implementations ─────────────────────────────────────────────────────
 
@@ -105,9 +107,7 @@ async function mockCreateSquadWithDetails(squadData) {
   return {
     success: true,
     squad: {
-      id: `squad-${Date.now()}`,
       ...squadData,
-      memberCount: 1,
       memberAvatars: [{ initials: 'ME', color: '#3B82F6' }],
     }
   };
@@ -180,7 +180,18 @@ async function realJoinOrCreateSquad(eventId, userId, interests = []) {
 async function realCreateSquad(squadData) {
   const token = await SecureStore.getItemAsync('discover_au_jwt');
   
-  const res = await fetch(`${BASE_URL}/api/squad/create`, {
+  const url = `${BASE_URL}/api/squad/create`;
+  console.log('=== Create Squad API Request ===');
+  console.log('Request URL:', url);
+  console.log('Request Method: POST');
+  console.log('Request Headers:', {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token ? '***' + token.slice(-10) : 'MISSING'}`
+  });
+  console.log('Request Body:', JSON.stringify(squadData, null, 2));
+  console.log('================================');
+  
+  const res = await fetch(url, {
     method: 'POST',
     headers: { 
       'Content-Type': 'application/json',
@@ -191,6 +202,32 @@ async function realCreateSquad(squadData) {
 
   const data = await res.json();
   if (!res.ok) throw new Error(data.message ?? 'Failed to create squad');
+  return data;
+}
+
+/**
+ * Fetch all squads
+ * Matches Java: GET /api/squad/all
+ */
+async function realFetchAllSquads() {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  const url = `${BASE_URL}/api/squad/all`;
+  console.log('=== Fetch All Squads API Request ===');
+  console.log('Request URL:', url);
+  console.log('Request Method: GET');
+  console.log('================================');
+  
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Failed to fetch all squads');
   return data;
 }
 
@@ -205,4 +242,7 @@ export const squadService = {
   
   // New detailed squad creation with form data
   createSquadWithDetails: MOCK_MODE ? mockCreateSquadWithDetails : realCreateSquad,
+  
+  // Fetch all squads
+  fetchAllSquads: realFetchAllSquads,
 };

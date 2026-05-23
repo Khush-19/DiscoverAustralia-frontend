@@ -24,11 +24,6 @@ import { useSquad } from '../hooks/useSquad';
 
 // Static data removed — squads now come from SquadContext (live, proximity-sorted)
 
-const HISTORY = [
-  { id: '1', icon: '📚', title: 'USYD Study Sesh',  members: 4, when: 'Last Tuesday' },
-  { id: '2', icon: '⛴️', title: 'Manly Ferry Day',   members: 5, when: '2 days ago'   },
-];
-
 // ─── Live pulsing dot ─────────────────────────────────────────────────────────
 
 function LiveDot() {
@@ -123,6 +118,17 @@ function getMemberAvatars(memberUserIds = []) {
   }));
 }
 
+// ─── Helper: Randomly select up to 2 tags ──────────────────────────────────────
+
+function getRandomTags(tags = [], count = 2) {
+  if (!tags || tags.length === 0) return [];
+  if (tags.length <= count) return tags;
+  
+  // Shuffle array and take first 'count' elements
+  const shuffled = [...tags].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
 // ─── Active squad card ────────────────────────────────────────────────────────
 
 function ActiveSquadCard({ item }) {
@@ -130,18 +136,12 @@ function ActiveSquadCard({ item }) {
   const s = getStyles(colors);
   const { isSquadJoined } = useUser();
   const { joinSquad } = useSquad();
-  const joined = isSquadJoined(item.id);
+  const joined = isSquadJoined(item.id || item.eventId);
   
   // Derive member count from memberUserIds array or use provided memberCount
   const memberCount = item.memberCount ?? (item.memberUserIds?.length) ?? 0;
   const avatars = item.memberAvatars || getMemberAvatars(item.memberUserIds);
   const extra = Math.max(0, memberCount - 3);
-  
-  // Handle icebreaker: null means pre-quorum, otherwise show the prompt
-  const hasIcebreaker = item.icebreaker?.promptText;
-  const icebreakerText = hasIcebreaker 
-    ? item.icebreaker.promptText 
-    : 'Waiting for more people to join...';
 
   return (
     <View style={s.activeCard}>
@@ -156,38 +156,40 @@ function ActiveSquadCard({ item }) {
         </View>
       </View>
 
-      {/* Icebreaker prompt or waiting state */}
-      <Text style={[s.cardSubtitle, hasIcebreaker ? s.cardIcebreakerActive : s.cardIcebreakerWaiting]} numberOfLines={2}>
-        {icebreakerText}
-      </Text>
-
       {/* Thin divider */}
       <View style={s.cardDivider} />
 
-      {/* Row 2 — date/time on left, avatar stack + join button on right ───── */}
+      {/* Row 2 — subtitle on left, avatar stack + join button on right ───── */}
       <View style={s.cardRow2}>
 
-        {/* LEFT: date, time, category tag */}
+        {/* LEFT: subtitle and tags */}
         <View style={s.cardRow2Left}>
-          <View style={s.dateRow}>
-            <CalendarDays size={11} color={colors.textMuted} strokeWidth={2} />
-            <Text style={s.dateText}>{item.day || 'Today'}</Text>
-            <Text style={s.inlineDot}>·</Text>
-            <Clock size={11} color={colors.textMuted} strokeWidth={2} />
-            <Text style={s.timeText}>{item.time || 'Now'}</Text>
-          </View>
-          <View
-            style={[
-              s.categoryTag,
-              {
-                backgroundColor: (item.tagColor || '#06B6D4') + '1A',
-                borderColor:     (item.tagColor || '#06B6D4') + '55',
-              },
-            ]}
-          >
-            <Text style={[s.categoryText, { color: item.tagColor || '#06B6D4' }]}>
-              {item.category || 'Squad'}
+          {/* Subtitle - limited to 30 characters */}
+          {item.subtitle && (
+            <Text style={s.cardSubtitle} numberOfLines={1}>
+              {item.subtitle.length > 30 ? item.subtitle.substring(0, 30) + '...' : item.subtitle}
             </Text>
+          )}
+          
+          {/* Display up to 2 random tags */}
+          <View style={s.tagsContainer}>
+            {(item.randomTags || [item.category]).slice(0, 2).map((tag, idx) => (
+              <View
+                key={idx}
+                style={[
+                  s.categoryTag,
+                  {
+                    backgroundColor: (item.tagColor || '#06B6D4') + '1A',
+                    borderColor:     (item.tagColor || '#06B6D4') + '55',
+                    marginRight: idx === 0 && (item.randomTags?.length || 1) > 1 ? 6 : 0,
+                  },
+                ]}
+              >
+                <Text style={[s.categoryText, { color: item.tagColor || '#06B6D4' }]}>
+                  {tag || 'Squad'}
+                </Text>
+              </View>
+            ))}
           </View>
         </View>
 
@@ -273,9 +275,27 @@ function SectionHeader({ children, right }) {
 
 export default function SquadsScreen() {
   const { colors, isDark }  = useTheme();
-  const { nearbySquads, isLoading } = useSquad();
+  const { nearbySquads, allSquads, isLoading } = useSquad();
+  const { user } = useUser();
   const navigation = useNavigation();
   const s = useMemo(() => getStyles(colors), [colors]);
+
+  // Filter squads based on alive status and user membership
+  const activeSquads = useMemo(() => {
+    return allSquads.filter(squad => squad.alive === true);
+  }, [allSquads]);
+
+  const historySquads = useMemo(() => {
+    const userEmail = user?.email;
+    if (!userEmail) return [];
+    
+    return allSquads.filter(squad => {
+      // Only include inactive squads where user is a member
+      return squad.alive === false && 
+             Array.isArray(squad.members) && 
+             squad.members.some(member => member.email === userEmail);
+    });
+  }, [allSquads, user]);
 
   const handleCreateNewSquad = () => {
     navigation.navigate('CreateSquad');
@@ -320,9 +340,29 @@ export default function SquadsScreen() {
           </View>
 
           <View style={s.cardList}>
-            {nearbySquads.map(squad => (
-              <ActiveSquadCard key={squad.id} item={squad} />
-            ))}
+            {activeSquads.map((squad, index) => {
+              const randomTags = getRandomTags(squad.tags, 2);
+              return (
+                <ActiveSquadCard key={squad.id || `squad-${index}`} item={{
+                  id: squad.id,
+                  eventId: squad.id,
+                  title: squad.name,
+                  subtitle: squad.subtitle,
+                  category: randomTags[0] || 'Squad',
+                  tagColor: '#06B6D4',
+                  memberUserIds: (squad.members || []).map(m => m.email),
+                  memberCount: squad.members?.length || 0,
+                  spotName: 'Location TBD',
+                  eta: 'Unknown',
+                  memberAvatars: (squad.members || []).slice(0, 3).map((member, i) => ({
+                    initials: member.nickname ? member.nickname.substring(0, 2).toUpperCase() : member.email.substring(0, 2).toUpperCase(),
+                    color: ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6'][i % 5]
+                  })),
+                  icebreaker: null,
+                  randomTags: randomTags
+                }} />
+              );
+            })}
           </View>
         </View>
 
@@ -333,13 +373,25 @@ export default function SquadsScreen() {
           </View>
 
           <View style={s.historyList}>
-            {HISTORY.map((item, i) => (
-              <HistoryCard
-                key={item.id}
-                item={item}
-                isLast={i === HISTORY.length - 1}
-              />
-            ))}
+            {historySquads.length > 0 ? (
+              historySquads.map((squad, i) => (
+                <HistoryCard
+                  key={squad.id || `history-${i}`}
+                  item={{
+                    id: squad.id,
+                    icon: '👥',
+                    title: squad.name,
+                    members: squad.members?.length || 0,
+                    when: squad.alive ? 'Active' : 'Ended'
+                  }}
+                  isLast={i === historySquads.length - 1}
+                />
+              ))
+            ) : (
+              <View style={s.emptyHistory}>
+                <Text style={s.emptyHistoryText}>No squad history yet</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -536,7 +588,7 @@ const getStyles = (colors = {}) => StyleSheet.create({
   },
 
   cardSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: colors.textSecondary,
     fontWeight: '500',
     marginBottom: 14,
@@ -594,6 +646,12 @@ const getStyles = (colors = {}) => StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 9,
     paddingVertical: 3,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 8,
   },
   categoryText: {
     fontSize: 10,
@@ -738,5 +796,15 @@ const getStyles = (colors = {}) => StyleSheet.create({
     fontSize: 11,
     color: '#6B7280',
     fontWeight: '700',
+  },
+  emptyHistory: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyHistoryText: {
+    fontSize: 14,
+    color: colors.textMuted,
+    fontWeight: '500',
   },
 });

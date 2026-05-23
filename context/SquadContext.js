@@ -13,6 +13,7 @@ export function SquadProvider({ children }) {
   const { coords } = useLocation();
 
   const [nearbySquads, setNearbySquads] = useState([]);
+  const [allSquads,      setAllSquads]      = useState([]);
   const [mySquad,      setMySquad]      = useState(null);
   const [isLoading,    setIsLoading]    = useState(false);
   const [error,        setError]        = useState(null);
@@ -36,10 +37,25 @@ export function SquadProvider({ children }) {
     }
   }, []);
 
+  // ── Fetch all squads ───────────────────────────────────────────────────────
+  const fetchAllSquads = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const data = await squadService.fetchAllSquads();
+      setAllSquads(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message ?? 'Could not load all squads.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   // ── Initial fetch + polling ───────────────────────────────────────────────────
   useEffect(() => {
     fetchNearbySquads(coords);
-  }, [coords, fetchNearbySquads]);
+    fetchAllSquads();
+  }, [coords, fetchNearbySquads, fetchAllSquads]);
 
   useEffect(() => {
     const pollTimer = setInterval(() => {
@@ -122,11 +138,7 @@ export function SquadProvider({ children }) {
       
       console.log('Squad created successfully:', result);
 
-      // Update nearby squads list with the newly created squad
-      if (result.squad) {
-        setNearbySquads(prev => [result.squad, ...prev]);
-        setMySquad(result.squad);
-      }
+      // Note: Squad list will be refreshed by dedicated API, no need to update state here
 
       return result;
     } catch (err) {
@@ -146,10 +158,12 @@ export function SquadProvider({ children }) {
     <SquadContext.Provider
       value={{
         nearbySquads,
+        allSquads,
         mySquad,
         isLoading,
         error,
         fetchNearbySquads,
+        fetchAllSquads,
         joinSquad,
         createSquad,
         createSquadWithDetails,
