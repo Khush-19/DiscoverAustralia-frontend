@@ -229,6 +229,8 @@ export default function HomeScreen({ navigation }) {
                     navigation.navigate('Squads');
                   } else if (a.label === 'Near Me') {
                     navigation.navigate('FullMap');
+                  } else if (a.label === 'Free Today') {
+                    navigation.navigate('FreePlaces');
                   }
                 }}
               >

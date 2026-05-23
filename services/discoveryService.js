@@ -702,7 +702,65 @@ async function searchActivities(keyword) {
   }
 }
 
-// ─── Get place detail by ID ──────────────────────────────────────────────────
+// ─── Get free places ─────────────────────────────────────────────────────────
+
+async function getFreePlaces() {
+  try {
+    console.log('[getFreePlaces] Fetching free places...');
+    console.log('[getFreePlaces] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/home/free-places`;
+    console.log('[getFreePlaces] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[getFreePlaces] Token exists:', !!token);
+    
+    const res = await fetch(url, {
+      headers: {
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      }
+    });
+    
+    console.log('[getFreePlaces] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getFreePlaces] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getFreePlaces] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getFreePlaces] Received data count:', data.length);
+    
+    // Transform API response to match the expected format
+    return data.map(place => ({
+      id: place.id,
+      title: place.name,
+      category: place.tag,
+      rating: place.star,
+      distance: place.distanceKm ? `${place.distanceKm.toFixed(2)}km` : 'N/A',
+      badge: place.tag,
+      badgeColor: '#10B981', // Green for "Free" or other tags
+      image: place.img,
+      description: place.description,
+      important_info: place.important_info,
+      latitude: place.latitude,
+      longitude: place.longitude,
+    }));
+  } catch (error) {
+    console.error('[getFreePlaces] Error:', error);
+    throw error;
+  }
+}
+
+// ─── Get place detail by ID ───────────────────────────────────────────────────
 
 async function getPlaceDetail(placeId) {
   try {
@@ -839,6 +897,7 @@ export const discoveryService = {
   getActivitiesWithin200km,
   searchPlaces,
   searchActivities,
+  getFreePlaces,
   getPlaceDetail,
   getHotActivity,
 };
