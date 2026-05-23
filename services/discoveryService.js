@@ -733,6 +733,54 @@ async function getPlaceDetail(placeId) {
   }
 }
 
+// ─── Get hot activity for home page ──────────────────────────────────────────
+
+async function getHotActivity() {
+  try {
+    console.log('[getHotActivity] Fetching hot activity...');
+    console.log('[getHotActivity] BASE_URL:', BASE_URL);
+    
+    const url = `${BASE_URL}/api/home/hot-activity`;
+    console.log('[getHotActivity] Request URL:', url);
+    
+    // Get JWT token for authentication
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    console.log('[getHotActivity] Token exists:', !!token);
+    
+    if (!token) {
+      throw new Error('Authentication required. Please log in.');
+    }
+    
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    
+    console.log('[getHotActivity] Response status:', res.status);
+    
+    if (!res.ok) {
+      let errorDetail = `HTTP error! status: ${res.status}`;
+      try {
+        const errorData = await res.json();
+        console.error('[getHotActivity] Error response:', errorData);
+        errorDetail = errorData.detail || errorData.message || errorDetail;
+      } catch (e) {
+        console.error('[getHotActivity] Could not parse error response');
+      }
+      throw new Error(errorDetail);
+    }
+    
+    const data = await res.json();
+    console.log('[getHotActivity] Received data:', data);
+    
+    return data;
+  } catch (error) {
+    console.error('[getHotActivity] Error:', error);
+    throw error;
+  }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const discoveryService = {
@@ -742,4 +790,5 @@ export const discoveryService = {
   getActivitiesWithin200km,
   searchPlaces,
   getPlaceDetail,
+  getHotActivity,
 };

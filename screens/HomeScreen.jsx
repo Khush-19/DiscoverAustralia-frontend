@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   ImageBackground,
   Animated,
   StyleSheet,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -21,6 +23,7 @@ import SpotCard from '../components/SpotCard';
 import SquadBanner from '../components/SquadBanner';
 import useFadeIn from '../hooks/useFadeIn';
 import { useUnreadMessageCount } from '../hooks/useUnreadMessageCount';
+import { discoveryService } from '../services/discoveryService';
 
 
 // ─── Static data ─────────────────────────────────────────────────────────────
@@ -61,6 +64,48 @@ export default function HomeScreen({ navigation }) {
   const { unreadCount }        = useUnreadMessageCount(30000); // Poll every 30 seconds
   const s = React.useMemo(() => getStyles(colors), [colors]);
 
+  // State for hot activity
+  const [hotActivity, setHotActivity] = useState(null);
+  const [isLoadingActivity, setIsLoadingActivity] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch hot activity on mount and auto-refresh every 30 seconds
+  useEffect(() => {
+    fetchHotActivity();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchHotActivity, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchHotActivity = async () => {
+    try {
+      setIsLoadingActivity(true);
+      const data = await discoveryService.getHotActivity();
+      setHotActivity(data);
+      console.log('[HomeScreen] Hot activity loaded:', data);
+    } catch (error) {
+      console.error('[HomeScreen] Failed to fetch hot activity:', error);
+    } finally {
+      setIsLoadingActivity(false);
+      setRefreshing(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    setRefreshing(true);
+    fetchHotActivity();
+  };
+
+  const handleActivityPress = () => {
+    if (hotActivity?.id) {
+      navigation.navigate('ActivityDetail', {
+        activityId: hotActivity.id,
+      });
+    }
+  };
+
   function handleVibeSelect(vibe) {
     updateVibe(vibe); // sync to UserContext for Aura engine
     navigation.navigate('VibeDetail', { vibe });
@@ -73,6 +118,14 @@ export default function HomeScreen({ navigation }) {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
+            />
+          }
         >
 
           {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -102,56 +155,72 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           </View>
 
-          {/* ── Discovery Hero Card ─────────────────────────────────────────── */}
-          <TouchableOpacity activeOpacity={0.9} style={s.heroShell}>
-            <ImageBackground
-              source={{ uri: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&q=80' }}
-              style={s.heroCard}
-              imageStyle={s.heroImage}
-            >
-              <LinearGradient
-                colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.78)']}
-                style={s.heroGrad}
+          {/* ── Hot Activity Hero Card ─────────────────────────────────────── */}
+          {isLoadingActivity ? (
+            <View style={s.heroShell}>
+              <View style={[s.heroCard, { backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }]}>
+                <ActivityIndicator size="large" color={colors.primary} />
+                <Text style={{ marginTop: 12, color: colors.textSecondary, fontSize: 14 }}>Loading hot activity...</Text>
+              </View>
+            </View>
+          ) : hotActivity ? (
+            <TouchableOpacity activeOpacity={0.9} style={s.heroShell} onPress={handleActivityPress}>
+              <ImageBackground
+                source={{ uri: hotActivity.img }}
+                style={s.heroCard}
+                imageStyle={s.heroImage}
               >
-                {/* Trending pill */}
-                <View style={s.trendingPill}>
-                  <Flame size={11} color="#F59E0B" fill="#F59E0B" />
-                  <Text style={s.trendingPillText}>Trending</Text>
-                </View>
+                <LinearGradient
+                  colors={['rgba(0,0,0,0.08)', 'rgba(0,0,0,0.78)']}
+                  style={s.heroGrad}
+                >
+                  {/* Trending pill */}
+                  <View style={s.trendingPill}>
+                    <Flame size={11} color="#F59E0B" fill="#F59E0B" />
+                    <Text style={s.trendingPillText}>Trending</Text>
+                  </View>
 
-                {/* Bottom content row */}
-                <View style={s.heroBottom}>
-                  <View style={s.heroInfo}>
-                    <Text style={s.heroTitle}>Bondi to Coogee Walk 🐚</Text>
-                    <View style={s.heroMeta}>
-                      {/* Stars */}
-                      <View style={s.starsRow}>
-                        {[1, 2, 3, 4, 5].map(i => (
-                          <Star key={i} size={11} color="#F59E0B" fill="#F59E0B" />
-                        ))}
+                  {/* Bottom content row */}
+                  <View style={s.heroBottom}>
+                    <View style={s.heroInfo}>
+                      <Text style={s.heroTitle}>{hotActivity.title}</Text>
+                      <View style={s.heroMeta}>
+                        {/* Stars */}
+                        <View style={s.starsRow}>
+                          {[1, 2, 3, 4, 5].map(i => (
+                            <Star 
+                              key={i} 
+                              size={11} 
+                              color={hotActivity.star != null && i <= Math.round(hotActivity.star) ? "#F59E0B" : "#6B7280"} 
+                              fill={hotActivity.star != null && i <= Math.round(hotActivity.star) ? "#F59E0B" : "transparent"} 
+                            />
+                          ))}
+                        </View>
+                        <Text style={s.heroMetaText}>{hotActivity.star != null ? hotActivity.star.toFixed(1) : 'N/A'}</Text>
+                        <Text style={s.dot}>·</Text>
+                        <Clock size={11} color="#D1D5DB" />
+                        <Text style={s.heroMetaText}>
+                          {hotActivity.start_time ? new Date(hotActivity.start_time).toLocaleDateString('en-AU', { 
+                            month: 'short', 
+                            day: 'numeric' 
+                          }) : 'TBD'}
+                        </Text>
+                        <Text style={s.dot}>·</Text>
+                        <Navigation size={11} color="#D1D5DB" />
+                        <Text style={s.heroMetaText}>{hotActivity.distanceKm != null ? `${hotActivity.distanceKm.toFixed(1)} km` : 'N/A'}</Text>
                       </View>
-                      <Text style={s.heroMetaText}>4.5</Text>
-                      <Text style={s.dot}>·</Text>
-                      <Clock size={11} color="#D1D5DB" />
-                      <Text style={s.heroMetaText}>2.5 hrs</Text>
-                      <Text style={s.dot}>·</Text>
-                      <Navigation size={11} color="#D1D5DB" />
-                      <Text style={s.heroMetaText}>5.9 km</Text>
                     </View>
-                  </View>
 
-                  <View style={s.heroActions}>
-                    <View style={s.freeBadge}>
-                      <Text style={s.freeBadgeText}>FREE</Text>
+                    <View style={s.heroActions}>
+                      <TouchableOpacity style={s.goBtn} activeOpacity={0.85}>
+                        <Text style={s.goBtnText}>View →</Text>
+                      </TouchableOpacity>
                     </View>
-                    <TouchableOpacity style={s.goBtn} activeOpacity={0.85}>
-                      <Text style={s.goBtnText}>Do →</Text>
-                    </TouchableOpacity>
                   </View>
-                </View>
-              </LinearGradient>
-            </ImageBackground>
-          </TouchableOpacity>
+                </LinearGradient>
+              </ImageBackground>
+            </TouchableOpacity>
+          ) : null}
 
           {/* ── Quick Actions ───────────────────────────────────────────────── */}
           <View style={s.quickContainer}>
