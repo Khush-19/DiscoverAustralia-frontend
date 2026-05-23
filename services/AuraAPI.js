@@ -150,3 +150,45 @@ export async function fetchInsiderTip(
     clearTimeout(timerId);
   }
 }
+
+/**
+ * Search activities by keyword from the Aura Brain API.
+ * This is the same API used in VibeScreen search bar.
+ *
+ * @param {string} keyword - Search keyword
+ * @returns {Promise<Array>} - Array of matching activity objects
+ * @throws {Error}            - On network failure, timeout, or non-2xx response
+ */
+export async function searchActivities(keyword) {
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  try {
+    const token = await SecureStore.getItemAsync('discover_au_jwt');
+    const response = await fetch(`${BASE_URL}/api/vibes/search`, {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({ keyword }),
+      signal: controller.signal,
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Aura Brain returned ${response.status}${body ? `: ${body}` : ''}`);
+    }
+
+    const data = await response.json();
+    return data;
+
+  } catch (err) {
+    if (err.name === 'AbortError') {
+      throw new Error('Request timed out — check that the backend is running.');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timerId);
+  }
+}

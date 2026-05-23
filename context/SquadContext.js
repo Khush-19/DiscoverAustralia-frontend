@@ -111,6 +111,33 @@ export function SquadProvider({ children }) {
   const joinSquad = handleJoinOrCreate;
   const createSquad = handleJoinOrCreate; 
 
+  // New detailed squad creation with form data
+  const createSquadWithDetails = useCallback(async (squadData) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      // Call the new API service
+      const result = await squadService.createSquadWithDetails(squadData);
+      
+      console.log('Squad created successfully:', result);
+
+      // Update nearby squads list with the newly created squad
+      if (result.squad) {
+        setNearbySquads(prev => [result.squad, ...prev]);
+        setMySquad(result.squad);
+      }
+
+      return result;
+    } catch (err) {
+      console.error('Failed to create squad:', err);
+      setError(err.message ?? 'Could not create squad.');
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   const leaveSquad = useCallback(() => {
     setMySquad(null); // Real-world: You'd want an API call here to remove the user from the DB array
   }, []);
@@ -125,6 +152,7 @@ export function SquadProvider({ children }) {
         fetchNearbySquads,
         joinSquad,
         createSquad,
+        createSquadWithDetails,
         leaveSquad,
       }}
     >

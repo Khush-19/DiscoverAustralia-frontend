@@ -100,6 +100,19 @@ async function mockCreateSquad(eventId, userId, interests = []) {
   };
 }
 
+async function mockCreateSquadWithDetails(squadData) {
+  await new Promise(resolve => setTimeout(resolve, 500));
+  return {
+    success: true,
+    squad: {
+      id: `squad-${Date.now()}`,
+      ...squadData,
+      memberCount: 1,
+      memberAvatars: [{ initials: 'ME', color: '#3B82F6' }],
+    }
+  };
+}
+
 // ─── Real implementations (Aligned to Spring Boot Backend) ──────────────
 
 async function realFetchNearbySquads(coords) {
@@ -153,6 +166,34 @@ async function realJoinOrCreateSquad(eventId, userId, interests = []) {
   return data; 
 }
 
+/**
+ * Create a new squad with custom details
+ * Matches Java: POST /api/squad/create
+ * @param {Object} squadData - Squad creation data
+ * @param {string} squadData.name - Squad name (required)
+ * @param {string} squadData.subtitle - Squad subtitle (required)
+ * @param {boolean} squadData.alive - Squad status (default: true)
+ * @param {string[]} squadData.numbers - User emails (auto-populated from JWT)
+ * @param {string[]} squadData.tags - Tag IDs (at least one required)
+ * @param {string[]} squadData.activities - Activity IDs (at least one required)
+ */
+async function realCreateSquad(squadData) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  const res = await fetch(`${BASE_URL}/api/squad/create`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify(squadData),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Failed to create squad');
+  return data;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const squadService = {
@@ -161,4 +202,7 @@ export const squadService = {
   // Both actions now route through our unified Spring Boot Upsert logic
   joinSquad:   MOCK_MODE ? mockJoinSquad   : realJoinOrCreateSquad,
   createSquad: MOCK_MODE ? mockCreateSquad : realJoinOrCreateSquad,
+  
+  // New detailed squad creation with form data
+  createSquadWithDetails: MOCK_MODE ? mockCreateSquadWithDetails : realCreateSquad,
 };

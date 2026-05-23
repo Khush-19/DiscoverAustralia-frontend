@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useNavigation } from '@react-navigation/native';
 import {
   Plus,
   CalendarDays,
@@ -272,13 +273,12 @@ function SectionHeader({ children, right }) {
 
 export default function SquadsScreen() {
   const { colors, isDark }  = useTheme();
-  const { nearbySquads, isLoading, createSquad } = useSquad();
+  const { nearbySquads, isLoading } = useSquad();
+  const navigation = useNavigation();
   const s = useMemo(() => getStyles(colors), [colors]);
 
   const handleCreateNewSquad = () => {
-    // Generate a fresh UUID for the new squad event
-    const newEventId = uuidv4();
-    createSquad(newEventId);
+    navigation.navigate('CreateSquad');
   };
 
   return (
