@@ -25,6 +25,12 @@ export function UserProvider({ children }) {
   
   // Track if health connect prompt has been shown
   const [healthPromptShown, setHealthPromptShown] = useState(false);
+  
+  // Experience level data from API
+  const [experienceData, setExperienceData] = useState({
+    squadCount: 0,
+    totalActivities: 0,
+  });
 
   // Sync userName with AuthContext user displayName
   useEffect(() => {
@@ -214,6 +220,18 @@ export function UserProvider({ children }) {
     // This state update is purely for in-process consumers (e.g. SquadsScreen).
   }, []);
 
+  /**
+   * Update experience data from API response
+   */
+  const updateExperienceData = useCallback((data) => {
+    if (data && typeof data.squadCount === 'number' && typeof data.totalActivities === 'number') {
+      setExperienceData({
+        squadCount: data.squadCount,
+        totalActivities: data.totalActivities,
+      });
+    }
+  }, []);
+
   // ── Value ─────────────────────────────────────────────────────────────────
 
   return (
@@ -234,6 +252,8 @@ export function UserProvider({ children }) {
         isSquadJoined,
         incrementAura,
         AURA_MAX,
+        experienceData,
+        updateExperienceData,
       }}
     >
       {children}

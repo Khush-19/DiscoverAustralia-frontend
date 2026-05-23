@@ -252,12 +252,6 @@ export default function HomeScreen({ navigation }) {
             />
           </View>
 
-          {/* ── Trending Squad Today ───────────────────────────────────────── */}
-          <View style={s.section}>
-            <SectionHeader title="🔥 Trending Squad Today" onSeeAll={() => navigation.navigate('Squads')} />
-            <SquadBanner />
-          </View>
-
           {/* ── Recommended Squad For You ───────────────────────────────────── */}
           <View style={s.section}>
             <SectionHeader title="💡 Recommended For You" onSeeAll={() => navigation.navigate('Squads')} />

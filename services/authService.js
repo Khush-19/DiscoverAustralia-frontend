@@ -138,6 +138,34 @@ async function realSetPersonalizedRecommendation(token, personalizedRecommendati
   return data;
 }
 
+async function realGetExperienceLevel(token) {
+  const url = `${BASE_URL}/api/experience/level`;
+  console.log('=== [DEBUG authService] ===');
+  console.log('Computed Request URL (getExperienceLevel):', url);
+  console.log('===========================');
+
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    let errorMsg = 'Failed to fetch experience level.';
+    try {
+      const data = await res.json();
+      errorMsg = data.message || data.detail || errorMsg;
+    } catch (e) {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorMsg);
+  }
+
+  const data = await res.json();
+  return data; // returns { squadCount: number, totalActivities: number }
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const authService = {
@@ -145,5 +173,6 @@ export const authService = {
   register: realRegister,
   getUserAvatar: realGetUserAvatar,
   setPersonalizedRecommendation: realSetPersonalizedRecommendation,
+  getExperienceLevel: realGetExperienceLevel,
 };
 

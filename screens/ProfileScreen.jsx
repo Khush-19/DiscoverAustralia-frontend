@@ -7,6 +7,7 @@ import {
   Image,
   Animated,
   StyleSheet,
+  RefreshControl,
 } from 'react-native';
 import { useIsFocused, useNavigation } from '@react-navigation/native';
 import * as SecureStore from 'expo-secure-store';
@@ -54,11 +55,12 @@ const AURA_BADGES = [
 
 // Squads count is derived at render time — see ProfileScreen component below
 
-const BADGES = [
-  { id: '1', label: 'Beach Lover', emoji: '🏖️', from: '#0C4A6E', to: '#0EA5E9' },
-  { id: '2', label: 'Cafe Hopper', emoji: '☕', from: '#7C2D12', to: '#EA580C' },
-  { id: '3', label: 'Squad Leader', emoji: '👑', from: '#4C1D95', to: '#7C3AED' },
-  { id: '4', label: 'Nature Seeker', emoji: '🌿', from: '#14532D', to: '#16A34A' },
+// Badge definitions for experience levels (every 2000 points)
+const EXPERIENCE_BADGES = [
+  { id: '1', label: 'Bronze Explorer', emoji: '🥉', from: '#CD7F32', to: '#B87333', minScore: 2000 },
+  { id: '2', label: 'Silver Adventurer', emoji: '🥈', from: '#C0C0C0', to: '#A8A8A8', minScore: 4000 },
+  { id: '3', label: 'Gold Voyager', emoji: '🥇', from: '#FFD700', to: '#FFA500', minScore: 6000 },
+  { id: '4', label: 'Platinum Legend', emoji: '💎', from: '#E5E4E2', to: '#B9F2FF', minScore: 8000 },
 ];
 
 const SETTINGS_ITEMS = [
@@ -133,13 +135,14 @@ function SettingsRow({ Icon, label, hint, isLast, onPress }) {
 
 export default function ProfileScreen() {
   const navigation = useNavigation();
-  const { userName, auraScore, activeSquads } = useUser();
+  const { userName, auraScore, activeSquads, experienceData, updateExperienceData } = useUser();
   const { signOut, user, userToken } = useAuth();
   const { colors, isDark } = useTheme();
   const s = React.useMemo(() => getStyles(colors), [colors]);
   const isFocused = useIsFocused();
   const [avatarUrl, setAvatarUrl] = React.useState(null);
   const [isNotificationEnabled, setIsNotificationEnabled] = React.useState(true);
+  const [refreshing, setRefreshing] = React.useState(false);
 
   React.useEffect(() => {
     if (isFocused) {
@@ -173,16 +176,63 @@ export default function ProfileScreen() {
     }
   }, [isFocused, userToken]);
 
+  // Fetch experience level data when screen is focused
+  React.useEffect(() => {
+    if (isFocused && userToken) {
+      let active = true;
+      authService.getExperienceLevel(userToken)
+        .then(data => {
+          if (active && data) {
+            updateExperienceData(data);
+          }
+        })
+        .catch(err => {
+          console.log('Error fetching experience level:', err);
+        });
+      return () => {
+        active = false;
+      };
+    }
+  }, [isFocused, userToken]);
+
+  // Pull-to-refresh handler
+  const onRefresh = React.useCallback(() => {
+    setRefreshing(true);
+    Promise.all([
+      userToken ? authService.getExperienceLevel(userToken).then(data => {
+        if (data) updateExperienceData(data);
+      }).catch(err => console.log('Error refreshing experience level:', err)) : Promise.resolve(),
+      userToken ? authService.getUserAvatar(userToken).then(data => {
+        if (data && data.url) setAvatarUrl(data.url);
+      }).catch(err => console.log('Error refreshing avatar:', err)) : Promise.resolve(),
+    ]).finally(() => {
+      setRefreshing(false);
+    });
+  }, [userToken, updateExperienceData]);
+
   const auraPct = auraScore / AURA_MAX;
   const trendPct = getTrendPercentage(AURA_HISTORY);
   const isUp = trendPct >= 0;
   const fadeStyle = useFadeIn();
 
-  // Squad count updates live whenever the user joins a new squad
+  // Squad count and actions from API, with fallbacks
+  const squadCount = experienceData.squadCount || activeSquads.length;
+  const totalActions = experienceData.totalActivities || 0;
+  
+  // Calculate aura score from actions (each action = 600 points)
+  const calculatedAuraScore = totalActions * 600;
+  
+  // Calculate level based on aura score (1 level = 1000 points)
+  const currentLevel = Math.floor(calculatedAuraScore / 1000);
+  
+  // Calculate progress within current level (mod 1000)
+  const progressInLevel = calculatedAuraScore % 1000;
+  const auraPctCalculated = progressInLevel / 1000;
+
   const STATS = [
-    { value: '24', label: 'Places' },
-    { value: String(activeSquads.length), label: 'Squads' },
-    { value: '12', label: 'Actions' },
+    { value: String(squadCount), label: 'Squads' },
+    { value: String(totalActions), label: 'Actions' },
+    { value: `Lv.${currentLevel}`, label: 'Level' },
   ];
 
 
@@ -192,6 +242,14 @@ export default function ProfileScreen() {
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scroll}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.primary}
+              colors={[colors.primary]}
+            />
+          }
         >
 
           {/* ── Page header ──────────────────────────────────────────────────── */}
@@ -242,29 +300,21 @@ export default function ProfileScreen() {
 
               {/* ── Aura Score section ───────────────────────────────────────── */}
               <View style={s.auraSection}>
-                {/* Label + numeric value */}
+                {/* Label + numeric value with level multiplier */}
                 <View style={s.auraTopRow}>
                   <Text style={s.auraLabel}>Score</Text>
-                  <Text style={s.auraValueText}>
-                    <Text style={s.auraHighlight}>{auraScore}</Text>
-                    <Text style={s.auraMax}> / {AURA_MAX}</Text>
-                  </Text>
-                </View>
-
-                {/* Weekly trend: sparkline bars + % badge */}
-                <View style={s.weeklyRow}>
-                  <MiniSparkline history={AURA_HISTORY} />
-                  <View style={[s.trendBadge, isUp ? s.trendBadgeUp : s.trendBadgeDown]}>
-                    {isUp
-                      ? <TrendingUp size={10} color={colors.primary} strokeWidth={2.5} />
-                      : <TrendingDown size={10} color="#EF4444" strokeWidth={2.5} />
-                    }
-                    <Text style={[s.trendBadgeText, isUp ? s.trendTextUp : s.trendTextDown]}>
-                      {isUp ? '+' : ''}{trendPct}% this week
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={s.auraValueText}>
+                      <Text style={s.auraHighlight}>{progressInLevel}</Text>
+                      <Text style={s.auraMax}> / 1000</Text>
                     </Text>
+                    {currentLevel > 0 && (
+                      <View style={s.levelMultiplierBadge}>
+                        <Text style={s.levelMultiplierText}>x{currentLevel}</Text>
+                      </View>
+                    )}
                   </View>
                 </View>
-
 
                 {/* Progress track + teal glow fill */}
                 <View style={s.progressTrack}>
@@ -272,35 +322,18 @@ export default function ProfileScreen() {
                   <View
                     style={[
                       s.progressGlow,
-                      { width: `${auraPct * 100}%` },
+                      { width: `${auraPctCalculated * 100}%` },
                     ]}
                   />
                   {/* Solid fill */}
-                  <View style={[s.progressFill, { width: `${auraPct * 100}%` }]}>
+                  <View style={[s.progressFill, { width: `${auraPctCalculated * 100}%` }]}>
                     <LinearGradient
-                      colors={['#2DD4BF', '#38BDF8']}
+                      colors={['#FFFFFF', '#F0F0F0']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={StyleSheet.absoluteFill}
                     />
                   </View>
-                </View>
-
-                {/* Incognito / Explorer badge pills */}
-                <View style={s.auraBadgeRow}>
-                  {AURA_BADGES.map(b => (
-                    <View
-                      key={b.id}
-                      style={[
-                        s.auraBadgePill,
-                        { backgroundColor: b.bg, borderColor: b.border },
-                      ]}
-                    >
-                      <Text style={[s.auraBadgeText, { color: b.color }]}>
-                        {b.label}
-                      </Text>
-                    </View>
-                  ))}
                 </View>
               </View>
             </LinearGradient>
@@ -327,7 +360,7 @@ export default function ProfileScreen() {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={s.badgeScroll}
             >
-              {BADGES.map(b => (
+              {EXPERIENCE_BADGES.filter(badge => calculatedAuraScore >= badge.minScore).map(b => (
                 <View key={b.id} style={s.badgeItem}>
                   <LinearGradient
                     colors={[b.from, b.to]}
@@ -340,6 +373,12 @@ export default function ProfileScreen() {
                   <Text style={s.badgeLabel}>{b.label}</Text>
                 </View>
               ))}
+              {EXPERIENCE_BADGES.filter(badge => calculatedAuraScore >= badge.minScore).length === 0 && (
+                <View style={s.emptyBadgesContainer}>
+                  <Text style={s.emptyBadgesText}>Earn badges by gaining aura score!</Text>
+                  <Text style={s.emptyBadgesSubtext}>Every 2000 points unlocks a new badge</Text>
+                </View>
+              )}
             </ScrollView>
           </View>
 
@@ -550,6 +589,19 @@ const getStyles = (colors) => StyleSheet.create({
     fontWeight: '600',
     color: 'rgba(255,255,255,0.55)',
   },
+  levelMultiplierBadge: {
+    backgroundColor: 'rgba(251,146,60,0.25)',
+    borderWidth: 1,
+    borderColor: 'rgba(251,146,60,0.5)',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  levelMultiplierText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FB923C',
+  },
   progressTrack: {
     height: 9,
     backgroundColor: 'rgba(0,0,0,0.3)',
@@ -563,9 +615,9 @@ const getStyles = (colors) => StyleSheet.create({
     left: 0,
     height: 17,
     borderRadius: 12,
-    backgroundColor: 'rgba(45,212,191,0.35)',
+    backgroundColor: 'rgba(255,255,255,0.35)',
     // iOS glow
-    shadowColor: '#2DD4BF',
+    shadowColor: '#FFFFFF',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.9,
     shadowRadius: 10,
@@ -677,6 +729,24 @@ const getStyles = (colors) => StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 13,
+  },
+  emptyBadgesContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  emptyBadgesText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textMuted,
+    textAlign: 'center',
+  },
+  emptyBadgesSubtext: {
+    fontSize: 12,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
 
   // ── Settings
