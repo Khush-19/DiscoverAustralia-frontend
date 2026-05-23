@@ -98,30 +98,16 @@ function AISearchBar() {
       <View style={s.searchBar}>
         <TextInput
           style={s.searchInput}
-          placeholder="Find somewhere quiet to study near USYD..."
+          placeholder="Find something you want"
           placeholderTextColor={colors.textMuted}
           value={query}
           onChangeText={setQuery}
           returnKeyType="send"
           multiline={false}
         />
-        {/* Teal submit button */}
-        <TouchableOpacity
-          style={[s.searchSubmitBtn, query.length > 0 && s.searchSubmitBtnActive]}
-          activeOpacity={0.8}
-        >
-          <Sparkles
-            size={16}
-            color={query.length > 0 ? '#000' : colors.primary}
-            strokeWidth={2.2}
-          />
-        </TouchableOpacity>
       </View>
 
-      {/* Attribution */}
-      <Text style={s.searchAttribution}>
-        Powered by Aura AI · 7 international students nearby
-      </Text>
+
     </View>
   );
 }
@@ -242,7 +228,10 @@ export default function VibeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* ── Scrollable list + sticky search bar ──────────────────────────── */}
+      {/* ── AI Search bar ─────────────────────────────────────────────── */}
+      <AISearchBar />
+
+      {/* ── Scrollable list ────────────────────────────────────────────── */}
       <KeyboardAvoidingView
         style={s.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -252,6 +241,7 @@ export default function VibeScreen() {
           style={s.flex}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.scrollContent}
+          keyboardShouldPersistTaps="handled"
         >
           {/* ── Vibe cards ──────────────────────────────────────────────── */}
           <View style={s.cardList}>
@@ -266,9 +256,6 @@ export default function VibeScreen() {
 
           <View style={{ height: 16 }} />
         </ScrollView>
-
-        {/* ── AI Search bar — sticks above keyboard ────────────────────── */}
-        <AISearchBar />
       </KeyboardAvoidingView>
 
       {/* ── AI Reasoning Modal ─────────────────────────────────────────── */}
@@ -440,12 +427,10 @@ const getStyles = (colors = {}) => StyleSheet.create({
   // ── AI Search bar
   searchWrapper: {
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: Platform.OS === 'ios' ? 12 : 16,
+    paddingTop: 8,
+    paddingBottom: 12,
     gap: 10,
     backgroundColor: colors.background,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
   },
   searchBar: {
     flexDirection: 'row',
@@ -466,31 +451,6 @@ const getStyles = (colors = {}) => StyleSheet.create({
     fontWeight: '500',
     paddingVertical: 7,
   },
-  searchSubmitBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(45,212,191,0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(45,212,191,0.3)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginLeft: 6,
-  },
-  searchSubmitBtnActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-    shadowColor: colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.55,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  searchAttribution: {
-    fontSize: 10,
-    color: colors.textMuted,
-    fontWeight: '500',
-    textAlign: 'center',
-    letterSpacing: 0.2,
-  },
+
+
 });
