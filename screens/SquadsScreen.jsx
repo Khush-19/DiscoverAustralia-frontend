@@ -132,7 +132,7 @@ function getRandomTags(tags = [], count = 2) {
 
 // ─── Active squad card ────────────────────────────────────────────────────────
 
-function ActiveSquadCard({ item, userEmail }) {
+function ActiveSquadCard({ item, userEmail, navigation }) {
   const { colors } = useTheme();
   const s = getStyles(colors);
   const { isSquadJoined } = useUser();
@@ -142,6 +142,12 @@ function ActiveSquadCard({ item, userEmail }) {
   const isMember = userEmail && Array.isArray(item.memberUserIds) && 
                    item.memberUserIds.includes(userEmail);
   const joined = isSquadJoined(item.id || item.eventId) || isMember;
+
+  const handleCardPress = () => {
+    if (navigation) {
+      navigation.navigate('SquadDetail', { squadId: item.id });
+    }
+  };
   
   // Derive member count from memberUserIds array or use provided memberCount
   const memberCount = item.memberCount ?? (item.memberUserIds?.length) ?? 0;
@@ -149,7 +155,8 @@ function ActiveSquadCard({ item, userEmail }) {
   const extra = Math.max(0, memberCount - 3);
 
   return (
-    <View style={s.activeCard}>
+    <TouchableOpacity activeOpacity={0.9} onPress={handleCardPress}>
+      <View style={s.activeCard}>
 
       {/* Row 1 — title + member count ──────────────────────────────────────── */}
       <View style={s.cardRow1}>
@@ -232,6 +239,7 @@ function ActiveSquadCard({ item, userEmail }) {
         </View>
       </View>
     </View>
+    </TouchableOpacity>
   );
 }
 
@@ -391,6 +399,7 @@ export default function SquadsScreen() {
                     randomTags: randomTags
                   }}
                   userEmail={currentUserEmail}
+                  navigation={navigation}
                 />
               );
             })}

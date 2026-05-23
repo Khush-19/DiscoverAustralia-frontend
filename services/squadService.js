@@ -231,6 +231,35 @@ async function realFetchAllSquads() {
   return data;
 }
 
+/**
+ * Fetch squad details
+ * Matches Java: POST /api/squad/detail
+ * @param {string} squadId - The ID of the squad
+ */
+async function realFetchSquadDetail(squadId) {
+  const token = await SecureStore.getItemAsync('discover_au_jwt');
+  
+  const url = `${BASE_URL}/api/squad/detail`;
+  console.log('=== Fetch Squad Detail API Request ===');
+  console.log('Request URL:', url);
+  console.log('Request Method: POST');
+  console.log('Request Body:', JSON.stringify({ squadId }, null, 2));
+  console.log('================================');
+  
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ squadId }),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.message ?? 'Failed to fetch squad detail');
+  return data;
+}
+
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export const squadService = {
@@ -245,4 +274,7 @@ export const squadService = {
   
   // Fetch all squads
   fetchAllSquads: realFetchAllSquads,
+  
+  // Fetch squad detail
+  fetchSquadDetail: realFetchSquadDetail,
 };

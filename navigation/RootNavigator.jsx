@@ -24,6 +24,7 @@ import FreePlacesScreen from '../screens/FreePlacesScreen';
 import CreateSquadScreen from '../screens/CreateSquadScreen';
 import SelectActivityScreen from '../screens/SelectActivityScreen';
 import SelectActivityDetailScreen from '../screens/SelectActivityDetailScreen';
+import SquadDetailScreen from '../screens/SquadDetailScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -108,6 +109,9 @@ function AppStack() {
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
       <Stack.Screen name="SelectActivityDetail" component={SelectActivityDetailScreen}
+        options={{ animation: 'slide_from_right', animationDuration: 240 }}
+      />
+      <Stack.Screen name="SquadDetail" component={SquadDetailScreen}
         options={{ animation: 'slide_from_right', animationDuration: 240 }}
       />
     </Stack.Navigator>
